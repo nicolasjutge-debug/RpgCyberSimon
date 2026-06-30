@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>CyberQuest — WebXR</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#00f0ff">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;600&display=swap');
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;overflow:hidden;background:#060a10;font-family:'Inter',sans-serif;color:#cfe7ee;}
+  canvas{display:block;}
+  .topbar{
+    position:absolute; top:0; left:0; right:0; height:56px; z-index:10;
+    display:flex; align-items:center; justify-content:space-between; padding:0 18px;
+    background:linear-gradient(180deg, rgba(6,10,16,.95), rgba(6,10,16,0));
+    pointer-events:none;
+  }
+  .brand{font-family:'Space Mono',monospace; font-weight:700; font-size:13px; letter-spacing:.12em; color:#00f0ff; text-shadow:0 0 12px rgba(0,240,255,.6);}
+  .brand span{color:#6f8a99; font-weight:400;}
+  #vrBtn{
+    pointer-events:auto;
+    font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.06em;
+    background:rgba(255,255,255,.05); border:1px solid #1c2c3d; color:#cfe7ee;
+    padding:9px 16px; border-radius:6px; cursor:pointer; transition:.2s;
+  }
+  #vrBtn:hover{border-color:#00f0ff; color:#00f0ff;}
+  #vrBtn:disabled{opacity:.4; cursor:default;}
+  .hint{
+    position:absolute; bottom:14px; left:0; right:0; text-align:center; z-index:10;
+    font-family:'Space Mono',monospace; font-size:10.5px; color:#6f8a99; letter-spacing:.05em;
+    pointer-events:none;
+  }
+  #status{
+    position:absolute; top:64px; left:18px; z-index:10; font-family:'Space Mono',monospace;
+    font-size:10.5px; color:#ffb020; max-width:280px; line-height:1.5;
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">CYBERQUEST <span>// WEBXR LIVE</span></div>
+    <div style="display:flex;gap:8px;pointer-events:auto;">
+      <button id="profileBtn" style="font-family:'Space Mono',monospace;font-size:11px;background:rgba(255,255,255,.05);border:1px solid #1c2c3d;color:#cfe7ee;padding:9px 14px;border-radius:6px;cursor:pointer;">👤 Profil</button>
+      <button id="vrBtn">🥽 Entrer en VR</button>
+    </div>
+  </div>
+  <div id="status"></div>
+  <div class="hint">SOURIS : GLISSER POUR REGARDER · CLIC SUR UNE RÉPONSE · EN CASQUE : GÂCHETTE POUR VISER/VALIDER</div>
+
+<script>
+const statusEl = document.getElementById('status');
+const vrBtn = document.getElementById('vrBtn');
+
+try {
+// ---------- CONFIG CLASSEMENT LIVE (jsonbin) ----------
+const JSONBIN_BIN_ID = '6a42d25af5f4af5e2943be8f';
+const JSONBIN_KEY = '<TA_CLE_ICI>'; // X-Master-Key — nécessaire pour lire ET écrire le XP. À remplacer toi-même avant l'upload.
+const GROQ_MODEL = 'openai/gpt-oss-20b'; // modèle Groq actuel (remplaçant officiel de llama-3.1-8b-instant, déprécié le 17/06/2026)
+
+// ---------- PROFIL ACTIF (Simon ou Niko, en local sur cet appareil/casque) ----------
+let activeProfile = localStorage.getItem('cq_vr_profile');
+let groqKey = localStorage.getItem('cq_vr_groqkey');
+function setupProfile(){
+  let p = prompt('Profil — tape "simon" ou "niko" :', activeProfile || 'niko');
+  if(!p) return false;
+  p = p.trim().toLowerCase();
+  let k = prompt('Ta clé API Groq personnelle (gsk_...) :', groqKey || '');
+  if(!k) return false;
+  activeProfile = p; groqKey = k.trim();
+  localStorage.setItem('cq_vr_profile', activeProfile);
+  localStorage.setItem('cq_vr_groqkey', groqKey);
+  return true;
+}
+if(!activeProfile || !groqKey){ setupProfile(); }
+let myXp = 0; // mis à jour après le premier fetch du classement
+
+// ---------- SCENE ----------
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x060a10);
+scene.fog = new THREE.Fog(0x060a10, 2.5, 9);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.05, 50);
+camera.position.set(0,1.6,1.6);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+renderer.xr.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// lights
+scene.add(new THREE.AmbientLight(0x223344, 1.2));
+const pl1 = new THREE.PointLight(0x00f0ff, 1.2, 6); pl1.position.set(-1.5,2,0.5); scene.add(pl1);
+const pl2 = new THREE.PointLight(0xb14eff, 1.0, 6); pl2.position.set(1.5,2,0.5); scene.add(pl2);
+
+// floor grid
+const grid = new THREE.GridHelper(20, 40, 0x00f0ff, 0x12222e);
+grid.position.y = 0;
+scene.add(grid);
+
+// ---------- CANVAS TEXTURE HELPER ----------
+function makePanel(w, h, draw){
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  draw(ctx, w, h);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.minFilter = THREE.LinearFilter;
+  return {canvas, ctx, tex};
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+// ---------- TITLE ----------
+const title = makePanel(900,160,(ctx,w,h)=>{
+  ctx.clearRect(0,0,w,h);
+  ctx.font='700 56px "Space Mono", monospace'; ctx.shadowBlur=20;
+  const w1 = ctx.measureText('CYBER').width;
+  const w2 = ctx.measureText('QUEST').width;
+  const startX = w/2 - (w1+w2)/2;
+  ctx.textAlign='left';
+  ctx.fillStyle='#00f0ff'; ctx.shadowColor='#00f0ff';
+  ctx.fillText('CYBER', startX, 70);
+  ctx.fillStyle='#ff2ecb'; ctx.shadowColor='#ff2ecb';
+  ctx.fillText('QUEST', startX+w1, 70);
+  ctx.shadowBlur=0; ctx.fillStyle='#6f8a99'; ctx.font='400 20px "Space Mono", monospace'; ctx.textAlign='center';
+  ctx.fillText('52 SEMAINES · 6 ZONES · QCM PAR IA', w/2, 110);
+});
+const titleMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.27), new THREE.MeshBasicMaterial({map:title.tex, transparent:true}));
+titleMesh.position.set(0,2.05,-1.3);
+scene.add(titleMesh);
+
+// ---------- CENTER PANEL : QCM ----------
+const centerGroup = new THREE.Group();
+centerGroup.position.set(0,1.55,-1.3);
+scene.add(centerGroup);
+
+const qBg = makePanel(640,420,(ctx,w,h)=>drawQuestionPanel(ctx,w,h,'Génération de la question…','CYBERSÉCURITÉ'));
+function drawQuestionPanel(ctx,w,h,text,topic){
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='rgba(13,22,34,0.92)'; roundRect(ctx,0,0,w,h,22); ctx.fill();
+  ctx.strokeStyle='#1c2c3d'; ctx.lineWidth=2; roundRect(ctx,1,1,w-2,h-2,22); ctx.stroke();
+  ctx.fillStyle='#00f0ff'; ctx.fillRect(0,26,4,h-52);
+  ctx.fillStyle='#00f0ff'; ctx.font='700 20px "Space Mono"'; ctx.textAlign='left';
+  ctx.fillText('QCM — '+(topic||'CYBERSÉCURITÉ'), 28,46);
+  ctx.fillStyle='#e8f6fa'; ctx.font='400 22px Inter, sans-serif';
+  wrapText(ctx, text, 28, 90, 580, 30);
+}
+function wrapText(ctx,text,x,y,maxW,lh){
+  const words=text.split(' '); let line=''; let yy=y;
+  for(const wd of words){
+    const test=line+wd+' ';
+    if(ctx.measureText(test).width>maxW && line!==''){ ctx.fillText(line,x,yy); line=wd+' '; yy+=lh; }
+    else line=test;
+  }
+  ctx.fillText(line,x,yy);
+}
+const qBgMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.0,0.656), new THREE.MeshBasicMaterial({map:qBg.tex, transparent:true}));
+centerGroup.add(qBgMesh);
+
+const options = [
+  {label:'A · …', correct:false},
+  {label:'B · …', correct:false},
+  {label:'C · …', correct:false},
+  {label:'D · …', correct:false},
+];
+const optionMeshes = [];
+options.forEach((opt,i)=>{
+  const p = makePanel(560,70,(ctx,w,h)=>{
+    drawOption(ctx,w,h,opt.label,'#1c2c3d','#cfe7ee');
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.86,0.108), new THREE.MeshBasicMaterial({map:p.tex, transparent:true}));
+  mesh.position.set(0, 0.06 - i*0.135, 0.01);
+  mesh.userData = {opt, panel:p, baseLabel:opt.label};
+  centerGroup.add(mesh);
+  optionMeshes.push(mesh);
+});
+function updateOptionsUI(newOptions){
+  newOptions.forEach((opt,i)=>{
+    const mesh = optionMeshes[i];
+    mesh.userData.opt = opt;
+    mesh.userData.baseLabel = opt.label;
+    drawOption(mesh.userData.panel.ctx,560,70,opt.label,'#1c2c3d','#cfe7ee');
+    mesh.userData.panel.tex.needsUpdate = true;
+  });
+}
+function drawOption(ctx,w,h,label,border,textColor,fill){
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = fill || 'rgba(255,255,255,0.03)'; roundRect(ctx,0,0,w,h,10); ctx.fill();
+  ctx.strokeStyle = border; ctx.lineWidth=3; roundRect(ctx,2,2,w-4,h-4,10); ctx.stroke();
+  ctx.fillStyle = textColor; ctx.font='600 26px Inter, sans-serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText(label, 24, h/2);
+}
+
+// ---------- GÉNÉRATION QCM VIA GROQ ----------
+let questionLocked = false;
+async function loadQuestion(){
+  questionLocked = true;
+  drawQuestionPanel(qBg.ctx,640,420,'Génération de la question…','CYBERSÉCURITÉ');
+  qBg.tex.needsUpdate = true;
+
+  if(!groqKey){
+    drawQuestionPanel(qBg.ctx,640,420,'Pas de clé Groq configurée. Tape "👤 Profil" en haut pour la renseigner.','ERREUR');
+    qBg.tex.needsUpdate = true;
+    questionLocked = false;
+    return;
+  }
+
+  try{
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+groqKey },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages:[
+          { role:'system', content:'Tu génères des questions de QCM de cybersécurité en français, niveau débutant/intermédiaire (style CyberQuest : réseaux, scripting Python, Linux, OSINT, forensic, scénarios concrets type Minecraft/Roblox/Fortnite détournés). Réponds UNIQUEMENT en JSON valide, sans texte autour, sans balises markdown, au format exact: {"topic":"...","question":"...","options":["...","...","...","..."],"correctIndex":0}' },
+          { role:'user', content:'Génère une nouvelle question, différente des précédentes, sur un sujet cybersécurité varié.' }
+        ],
+        temperature: 0.9
+      })
+    });
+    if(!res.ok){ throw new Error('HTTP '+res.status); }
+    const data = await res.json();
+    let raw = data.choices?.[0]?.message?.content || '';
+    raw = raw.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(raw);
+
+    drawQuestionPanel(qBg.ctx,640,420, parsed.question, parsed.topic||'CYBERSÉCURITÉ');
+    qBg.tex.needsUpdate = true;
+
+    const letters = ['A','B','C','D'];
+    const newOptions = parsed.options.slice(0,4).map((opt,i)=>({
+      label: letters[i]+' · '+opt,
+      correct: i === parsed.correctIndex
+    }));
+    updateOptionsUI(newOptions);
+  }catch(err){
+    drawQuestionPanel(qBg.ctx,640,420, 'Erreur Groq : '+err.message+' (vérifie ta clé via 👤 Profil)', 'ERREUR');
+    qBg.tex.needsUpdate = true;
+  }
+  questionLocked = false;
+}
+
+// floating +XP feedback
+const xpFloat = makePanel(260,80,(ctx,w,h)=>{ ctx.clearRect(0,0,w,h); });
+const xpMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.32,0.1), new THREE.MeshBasicMaterial({map:xpFloat.tex, transparent:true, opacity:0}));
+xpMesh.position.set(0.42, 0.28, 0.02);
+centerGroup.add(xpMesh);
+let xpAnim = null;
+
+// ---------- LEFT PANEL : PROFIL ----------
+const leftGroup = new THREE.Group();
+leftGroup.position.set(-0.95,1.5,-0.95);
+leftGroup.rotation.y = Math.PI*0.16;
+scene.add(leftGroup);
+
+let xpProgress = 0;
+function drawProfile(ctx,w,h){
+  ctx.fillStyle='rgba(13,22,34,0.92)'; roundRect(ctx,0,0,w,h,20); ctx.fill();
+  ctx.strokeStyle='#1c2c3d'; ctx.lineWidth=2; roundRect(ctx,1,1,w-2,h-2,20); ctx.stroke();
+  ctx.fillStyle='#b14eff'; ctx.fillRect(0,20,4,h-40);
+  ctx.fillStyle='#b14eff'; ctx.font='700 18px "Space Mono"'; ctx.textAlign='left';
+  ctx.fillText('PROFIL',26,42);
+
+  const name = (activeProfile || '???').toUpperCase();
+  const initials = name.slice(0,2);
+
+  // avatar
+  const grad = ctx.createLinearGradient(26,60,110,144);
+  grad.addColorStop(0,'#b14eff'); grad.addColorStop(1,'#00f0ff');
+  ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(68,100,42,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#060a10'; ctx.font='700 22px "Space Mono"'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(initials,68,100);
+
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillStyle='#ffffff'; ctx.font='700 22px "Space Mono"';
+  ctx.fillText(name,128,94);
+  ctx.fillStyle='#b14eff'; ctx.font='400 17px Inter, sans-serif';
+  ctx.fillText('Casque VR · Quest 2',128,122);
+
+  ctx.fillStyle='#6f8a99'; ctx.font='400 14px "Space Mono"';
+  ctx.fillText('XP',26,180); ctx.textAlign='right'; ctx.fillText(myXp+' XP',w-26,180); ctx.textAlign='left';
+  ctx.fillStyle='rgba(255,255,255,0.06)'; roundRect(ctx,26,190,w-52,10,5); ctx.fill();
+  const bg2 = ctx.createLinearGradient(26,0,w-26,0); bg2.addColorStop(0,'#b14eff'); bg2.addColorStop(1,'#00f0ff');
+  const visualProgress = Math.min(1, (myXp % 1000) / 1000);
+  ctx.fillStyle=bg2; roundRect(ctx,26,190,(w-52)*visualProgress,10,5); ctx.fill();
+
+  ctx.fillStyle='#ffb020'; ctx.font='700 18px "Space Mono"';
+  ctx.fillText('XP synchronisé avec le cloud',26,232);
+}
+const profilePanel = makePanel(440,280,drawProfile);
+const profileMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.62,0.394), new THREE.MeshBasicMaterial({map:profilePanel.tex, transparent:true}));
+leftGroup.add(profileMesh);
+
+// ---------- RIGHT PANEL : LEADERBOARD ----------
+const rightGroup = new THREE.Group();
+rightGroup.position.set(0.95,1.5,-0.95);
+rightGroup.rotation.y = -Math.PI*0.16;
+scene.add(rightGroup);
+
+function drawLeaderboard(ctx,w,h, rows, loading, errorMsg){
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='rgba(13,22,34,0.92)'; roundRect(ctx,0,0,w,h,20); ctx.fill();
+  ctx.strokeStyle='#1c2c3d'; ctx.lineWidth=2; roundRect(ctx,1,1,w-2,h-2,20); ctx.stroke();
+  ctx.fillStyle='#ffb020'; ctx.fillRect(0,20,4,h-40);
+  ctx.fillStyle='#ffb020'; ctx.font='700 18px "Space Mono"'; ctx.textAlign='left';
+  ctx.fillText('CLASSEMENT',26,42);
+
+  if(loading){
+    ctx.fillStyle='#6f8a99'; ctx.font='400 16px "Space Mono"';
+    ctx.fillText('Chargement…',26,90);
+    return;
+  }
+  if(errorMsg){
+    ctx.fillStyle='#ff6b81'; ctx.font='400 13px "Space Mono"';
+    wrapText(ctx, 'Erreur sync : '+errorMsg, 26, 90, w-52, 18);
+    return;
+  }
+
+  let y=80;
+  rows.forEach((r,i)=>{
+    if(r.isMe){ ctx.fillStyle='rgba(0,240,255,0.08)'; roundRect(ctx,18,y-26,w-36,42,8); ctx.fill(); }
+    ctx.fillStyle='#6f8a99'; ctx.font='400 16px "Space Mono"'; ctx.fillText(String(i+1).padStart(2,'0'),26,y);
+    ctx.fillStyle = r.isMe ? '#00f0ff' : '#cfe7ee'; ctx.font = (r.isMe?'700 ':'400 ')+'18px Inter, sans-serif'; ctx.fillText(r.name,58,y);
+    ctx.fillStyle='#ffb020'; ctx.font='400 16px "Space Mono"'; ctx.textAlign='right'; ctx.fillText(r.xp+' XP',w-26,y); ctx.textAlign='left';
+    y+=58;
+  });
+}
+const lbPanel = makePanel(440,280,(ctx,w,h)=>drawLeaderboard(ctx,w,h,[],true,null));
+const lbMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.62,0.394), new THREE.MeshBasicMaterial({map:lbPanel.tex, transparent:true}));
+rightGroup.add(lbMesh);
+
+// ---------- FETCH CLASSEMENT LIVE ----------
+async function loadLeaderboard(){
+  try{
+    const res = await fetch('https://api.jsonbin.io/v3/b/'+JSONBIN_BIN_ID+'/latest', {
+      headers:{ 'X-Access-Key': JSONBIN_KEY }
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    const record = data.record || {};
+
+    // Structure réelle confirmée : { "p_xxxxxxxxxx": {name, avatar, xp, done, streak, updatedAt}, ... }
+    let rows = [];
+    if(Array.isArray(record.users)){
+      rows = record.users.map(u => ({ name: u.name || u.pseudo || u.id, xp: u.xp ?? 0, isMe: (u.name||u.pseudo||u.id||'').toLowerCase()===activeProfile }));
+    } else {
+      rows = Object.entries(record)
+        .filter(([k,v]) => k!=='init' && v && typeof v==='object')
+        .map(([key,val]) => ({
+          key,
+          name: val.name || key,
+          xp: val.xp ?? 0,
+          isMe: (val.name||'').toLowerCase() === activeProfile
+        }));
+    }
+    rows.sort((a,b)=> b.xp - a.xp);
+
+    const mine = rows.find(r=>r.isMe);
+    if(mine) myXp = mine.xp;
+
+    drawLeaderboard(lbPanel.ctx,440,280, rows, false, null);
+    lbPanel.tex.needsUpdate = true;
+  }catch(err){
+    drawLeaderboard(lbPanel.ctx,440,280, [], false, err.message);
+    lbPanel.tex.needsUpdate = true;
+  }
+}
+loadLeaderboard();
+setInterval(loadLeaderboard, 20000); // rafraîchit toutes les 20s
+
+// ---------- ÉCRITURE XP (XP gagné en VR -> jsonbin -> visible iPhone/PC) ----------
+async function syncXpGain(amount){
+  if(!activeProfile){ return; }
+  try{
+    const res = await fetch('https://api.jsonbin.io/v3/b/'+JSONBIN_BIN_ID+'/latest', {
+      headers:{ 'X-Master-Key': JSONBIN_KEY }
+    });
+    if(!res.ok) throw new Error('GET HTTP '+res.status);
+    const data = await res.json();
+    const record = data.record || {};
+
+    // Cherche l'entrée correspondant au profil actif via le champ "name" (insensible à la casse), la crée si absente.
+    let targetKey = Object.keys(record).find(k => k!=='init' && record[k] && (record[k].name||'').toLowerCase() === activeProfile);
+    if(!targetKey){
+      targetKey = 'p_' + Date.now();
+      record[targetKey] = {
+        name: activeProfile.charAt(0).toUpperCase()+activeProfile.slice(1),
+        avatar: '🥽',
+        xp: 0, done: 0, streak: 0,
+        updatedAt: Date.now()
+      };
+    }
+    record[targetKey].xp = (record[targetKey].xp || 0) + amount;
+    record[targetKey].updatedAt = Date.now();
+
+    const putRes = await fetch('https://api.jsonbin.io/v3/b/'+JSONBIN_BIN_ID, {
+      method:'PUT',
+      headers:{ 'Content-Type':'application/json', 'X-Master-Key': JSONBIN_KEY },
+      body: JSON.stringify(record)
+    });
+    if(!putRes.ok) throw new Error('PUT HTTP '+putRes.status);
+
+    myXp = record[targetKey].xp;
+    loadLeaderboard(); // re-sync l'affichage classement avec la nouvelle valeur
+  }catch(err){
+    statusEl.style.color = '#ffb020';
+    statusEl.textContent = 'Sync XP échouée : ' + err.message;
+  }
+}
+
+
+// ---------- PARTICLES ----------
+const particleCount = 80;
+const pGeo = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount*3);
+for(let i=0;i<particleCount;i++){
+  positions[i*3]=(Math.random()-0.5)*6;
+  positions[i*3+1]=Math.random()*3+0.3;
+  positions[i*3+2]=(Math.random()-0.5)*6;
+}
+pGeo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+const pMat = new THREE.PointsMaterial({color:0x00f0ff, size:0.015, transparent:true, opacity:0.6});
+scene.add(new THREE.Points(pGeo, pMat));
+
+// ---------- DESKTOP LOOK CONTROLS ----------
+let yaw=0, pitch=0, dragging=false, lastX=0, lastY=0;
+renderer.domElement.addEventListener('pointerdown', e=>{ if(renderer.xr.isPresenting) return; dragging=true; lastX=e.clientX; lastY=e.clientY; });
+window.addEventListener('pointerup', ()=> dragging=false);
+window.addEventListener('pointermove', e=>{
+  if(!dragging || renderer.xr.isPresenting) return;
+  yaw -= (e.clientX-lastX)*0.004;
+  pitch -= (e.clientY-lastY)*0.003;
+  pitch = Math.max(-1.0, Math.min(1.0, pitch));
+  lastX=e.clientX; lastY=e.clientY;
+  camera.rotation.set(pitch, yaw, 0, 'YXZ');
+});
+
+// desktop click -> raycast
+const raycaster = new THREE.Raycaster();
+const mouseNDC = new THREE.Vector2();
+renderer.domElement.addEventListener('click', e=>{
+  if(renderer.xr.isPresenting) return;
+  mouseNDC.x = (e.clientX/innerWidth)*2-1;
+  mouseNDC.y = -(e.clientY/innerHeight)*2+1;
+  raycaster.setFromCamera(mouseNDC, camera);
+  const hits = raycaster.intersectObjects(optionMeshes);
+  if(hits.length) selectOption(hits[0].object);
+});
+
+// ---------- VR CONTROLLERS ----------
+function buildControllerRay(){
+  const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,-1)]);
+  const mat = new THREE.LineBasicMaterial({color:0x00f0ff, transparent:true, opacity:0.6});
+  const line = new THREE.Line(geo, mat);
+  line.scale.z = 5;
+  return line;
+}
+const controllers = [];
+for(let i=0;i<2;i++){
+  const controller = renderer.xr.getController(i);
+  controller.add(buildControllerRay());
+  controller.addEventListener('selectstart', ()=> onControllerSelect(controller));
+  scene.add(controller);
+  controllers.push(controller);
+}
+const vrRaycaster = new THREE.Raycaster();
+const tempMatrix = new THREE.Matrix4();
+function onControllerSelect(controller){
+  tempMatrix.identity().extractRotation(controller.matrixWorld);
+  vrRaycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+  vrRaycaster.ray.direction.set(0,0,-1).applyMatrix4(tempMatrix);
+  const hits = vrRaycaster.intersectObjects(optionMeshes);
+  if(hits.length) selectOption(hits[0].object);
+}
+
+// ---------- SELECTION LOGIC ----------
+function selectOption(mesh){
+  if(questionLocked) return;
+  questionLocked = true;
+  optionMeshes.forEach(m=>{
+    const correct = m.userData.opt.correct;
+    drawOption(m.userData.panel.ctx, 560,70, m.userData.baseLabel,
+      m===mesh ? (correct?'#27e0a0':'#ff3b5c') : '#1c2c3d',
+      m===mesh ? (correct?'#aef6da':'#ffc2cd') : '#cfe7ee',
+      m===mesh ? (correct?'rgba(39,224,160,0.12)':'rgba(255,59,92,0.1)') : null
+    );
+    m.userData.panel.tex.needsUpdate = true;
+  });
+  if(mesh.userData.opt.correct){
+    xpAnim = {t:0};
+    const c = xpFloat.ctx;
+    c.clearRect(0,0,260,80);
+    c.fillStyle='#27e0a0'; c.font='700 36px "Space Mono"'; c.textAlign='center';
+    c.fillText('+50 XP',130,48);
+    xpFloat.tex.needsUpdate = true;
+    xpMesh.material.opacity = 1;
+    syncXpGain(50);
+  }
+  setTimeout(()=>{
+    optionMeshes.forEach(m=>{
+      drawOption(m.userData.panel.ctx,560,70,m.userData.baseLabel,'#1c2c3d','#cfe7ee');
+      m.userData.panel.tex.needsUpdate = true;
+    });
+    loadQuestion();
+  },2000);
+}
+
+// ---------- VR BUTTON ----------
+if(navigator.xr){
+  navigator.xr.isSessionSupported('immersive-vr').then(supported=>{
+    if(!supported){
+      vrBtn.disabled = true;
+      statusEl.textContent = "WebXR détecté mais session immersive non supportée par ce navigateur/appareil.";
+    }
+  }).catch(()=>{ vrBtn.disabled = true; statusEl.textContent = "Impossible de vérifier le support WebXR ici."; });
+} else {
+  vrBtn.disabled = true;
+  statusEl.textContent = "Ce navigateur n'expose pas l'API WebXR (normal en aperçu desktop). Ouvre ce fichier dans le navigateur du Quest 2 pour entrer en immersif.";
+}
+
+let xrSession = null;
+vrBtn.addEventListener('click', async ()=>{
+  if(xrSession){ xrSession.end(); return; }
+  try{
+    const session = await navigator.xr.requestSession('immersive-vr', {optionalFeatures:['local-floor','bounded-floor']});
+    xrSession = session;
+    renderer.xr.setSession(session);
+    vrBtn.textContent = '⏹ Quitter la VR';
+    session.addEventListener('end', ()=>{ xrSession=null; vrBtn.textContent='🥽 Entrer en VR'; });
+  }catch(err){
+    statusEl.textContent = "Session refusée : " + err.message + " — vérifie que la page est ouverte directement (hors iframe) dans le navigateur du Quest.";
+  }
+});
+
+document.getElementById('profileBtn').addEventListener('click', ()=>{
+  if(setupProfile()){ loadQuestion(); loadLeaderboard(); }
+});
+
+loadQuestion();
+
+// ---------- ANIMATE ----------
+let t=0;
+renderer.setAnimationLoop(()=>{
+  t+=0.01;
+  // ambient float of particles
+  const pos = pGeo.attributes.position.array;
+  for(let i=0;i<particleCount;i++){ pos[i*3+1] += Math.sin(t+i)*0.0006; }
+  pGeo.attributes.position.needsUpdate = true;
+
+  if(xpAnim){
+    xpAnim.t += 0.02;
+    xpMesh.position.y = 0.28 + xpAnim.t*0.15;
+    xpMesh.material.opacity = Math.max(0, 1-xpAnim.t);
+    if(xpAnim.t>1){ xpAnim=null; xpMesh.position.y=0.28; }
+  }
+
+  // redraw profile bar smoothly
+  drawProfile(profilePanel.ctx,440,280);
+  profilePanel.tex.needsUpdate = true;
+
+  renderer.render(scene, camera);
+});
+
+} catch(err) {
+  statusEl.style.color = '#ff3b5c';
+  statusEl.style.fontSize = '12px';
+  statusEl.textContent = 'Erreur JS : ' + err.message;
+  console.error(err);
+}
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
