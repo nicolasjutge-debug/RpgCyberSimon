@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CyberQuest VR — Config Quest 2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;}
+body{margin:0;background:#060a10;font-family:-apple-system,sans-serif;color:#cfe7ee;padding:20px;min-height:100vh;}
+.title{font-family:monospace;font-size:22px;color:#00f0ff;margin-bottom:4px;}
+.title b{color:#ff2ecb;}
+.sub{font-size:13px;color:#6f8a99;margin-bottom:28px;font-family:monospace;}
+.card{background:#0d1622;border:1px solid #1c2c3d;border-radius:12px;padding:20px;margin-bottom:16px;}
+.card-title{font-family:monospace;font-size:12px;color:#00f0ff;letter-spacing:.1em;margin-bottom:14px;}
+label{display:block;font-family:monospace;font-size:11px;color:#6f8a99;margin-bottom:5px;margin-top:12px;}
+input[type=password],input[type=text]{width:100%;padding:13px;background:#060a10;border:1px solid #1c2c3d;border-radius:8px;color:#fff;font-size:14px;font-family:monospace;}
+.profbtns{display:flex;gap:10px;margin-bottom:4px;}
+.pb{flex:1;padding:13px;border:2px solid #1c2c3d;border-radius:8px;color:#6f8a99;font-family:monospace;font-size:14px;cursor:pointer;background:transparent;transition:.15s;}
+.pb.sel{border-color:#b14eff;color:#b14eff;background:rgba(177,78,255,.12);}
+.genbtn{width:100%;padding:16px;background:#00f0ff;color:#04141a;border:none;border-radius:10px;font-family:monospace;font-size:14px;font-weight:700;cursor:pointer;margin-top:18px;letter-spacing:.05em;}
+.genbtn:hover{background:#00d4e0;}
+.err{color:#ff3b5c;font-size:12px;font-family:monospace;margin-top:8px;min-height:16px;}
+/* QR RÉSULTAT */
+#result{display:none;margin-top:20px;}
+.qr-card{background:#fff;border-radius:16px;padding:20px;display:flex;flex-direction:column;align-items:center;}
+#qrcode{margin:0 auto;}
+.qr-title{font-family:monospace;font-size:13px;color:#060a10;margin-top:14px;text-align:center;font-weight:700;}
+.qr-sub{font-family:monospace;font-size:11px;color:#666;margin-top:4px;text-align:center;}
+.tuto{background:rgba(0,240,255,.06);border:1px solid rgba(0,240,255,.2);border-radius:10px;padding:16px;margin-top:16px;}
+.tuto-title{font-family:monospace;font-size:11px;color:#00f0ff;letter-spacing:.08em;margin-bottom:10px;}
+.step{display:flex;gap:12px;margin-bottom:10px;align-items:flex-start;}
+.step-num{background:#00f0ff;color:#04141a;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:12px;font-weight:700;flex-shrink:0;}
+.step-text{font-size:13px;color:#cfe7ee;line-height:1.4;}
+.step-text b{color:#00f0ff;}
+.reset{width:100%;padding:12px;background:transparent;color:#6f8a99;border:1px solid #1c2c3d;border-radius:8px;font-family:monospace;font-size:12px;cursor:pointer;margin-top:12px;}
+.showbtn{background:transparent;border:none;color:#6f8a99;font-size:11px;cursor:pointer;font-family:monospace;margin-top:4px;}
+</style>
+</head>
+<body>
+
+<div class="title">CYBER<b>QUEST</b> VR</div>
+<div class="sub">Générateur de config Quest 2 — ouvre cette page sur iPhone</div>
+
+<div id="formSection">
+  <div class="card">
+    <div class="card-title">ÉTAPE 1 — PROFIL</div>
+    <div class="profbtns">
+      <button class="pb sel" data-n="simon">🐣 Simon</button>
+      <button class="pb" data-n="niko">🦁 Niko</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ÉTAPE 2 — CLÉ GROQ</div>
+    <label>Ta clé personnelle (commence par gsk_)</label>
+    <input type="password" id="gkInput" placeholder="gsk_...">
+    <button class="showbtn" onclick="toggle('gkInput')">👁 Afficher/masquer</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ÉTAPE 3 — CLÉ JSONBIN</div>
+    <label>X-Master-Key du classement (commence par $2a$)</label>
+    <input type="password" id="jbInput" placeholder="$2a$10$...">
+    <button class="showbtn" onclick="toggle('jbInput')">👁 Afficher/masquer</button>
+  </div>
+
+  <button class="genbtn" onclick="generate()">📱 GÉNÉRER LE QR CODE POUR LE QUEST 2</button>
+  <div class="err" id="err"></div>
+</div>
+
+<div id="result">
+  <div class="qr-card">
+    <div id="qrcode"></div>
+    <div class="qr-title" id="qrLabel">Config Simon — Quest 2</div>
+    <div class="qr-sub">Scanne ce QR code depuis le Quest 2</div>
+  </div>
+
+  <div class="tuto">
+    <div class="tuto-title">📋 COMMENT SCANNER SUR QUEST 2</div>
+    <div class="step"><div class="step-num">1</div><div class="step-text">Mets ton <b>iPhone devant toi</b> avec ce QR code visible à l'écran</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-text">Sur le Quest 2 : appuie sur le bouton <b>Meta</b> (logo Quest) → <b>Caméra</b> → pointe vers l'iPhone</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-text">Une notification apparaît avec le lien → <b>tape dessus</b> → le navigateur Quest s'ouvre</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-text"><b>Les clés sont installées automatiquement</b> — tu verras directement les zones CyberQuest</div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-text">C'est fait ! Plus jamais besoin de retaper les clés sur ce casque</div></div>
+  </div>
+
+  <button class="reset" onclick="reset()">← Modifier les clés</button>
+</div>
+
+<script>
+const BASE = 'https://nicolasjutge-debug.github.io/RpgCyberSimon/vr/';
+let selP = 'simon';
+
+document.querySelectorAll('.pb').forEach(b => {
+  b.addEventListener('click', () => {
+    selP = b.dataset.n;
+    document.querySelectorAll('.pb').forEach(x => x.classList.toggle('sel', x.dataset.n === selP));
+  });
+});
+
+function toggle(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function generate() {
+  const g = document.getElementById('gkInput').value.trim();
+  const j = document.getElementById('jbInput').value.trim();
+  const err = document.getElementById('err');
+
+  if (!g.startsWith('gsk_')) { err.textContent = 'Clé Groq invalide — doit commencer par gsk_'; return; }
+  if (!j.startsWith('$2a$')) { err.textContent = 'Clé JSONBin invalide — doit commencer par $2a$'; return; }
+  err.textContent = '';
+
+  // Encode dans le hash de l'URL (ne va jamais sur le serveur)
+  const url = BASE + '#p=' + selP + '&g=' + encodeURIComponent(g) + '&j=' + encodeURIComponent(j);
+
+  document.getElementById('qrcode').innerHTML = '';
+  new QRCode(document.getElementById('qrcode'), {
+    text: url,
+    width: 260,
+    height: 260,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  document.getElementById('qrLabel').textContent = 'Config ' + selP.charAt(0).toUpperCase() + selP.slice(1) + ' — Quest 2';
+  document.getElementById('formSection').style.display = 'none';
+  document.getElementById('result').style.display = 'block';
+}
+
+function reset() {
+  document.getElementById('formSection').style.display = 'block';
+  document.getElementById('result').style.display = 'none';
+}
+</script>
+</body>
+</html>
