@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CyberQuest — WebXR</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#00f0ff">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
+<style>
+*{box-sizing:border-box;}html,body{margin:0;height:100%;overflow:hidden;background:#060a10;font-family:'Inter',sans-serif;color:#cfe7ee;}canvas{display:block;}
+.topbar{position:absolute;top:0;left:0;right:0;height:52px;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:linear-gradient(180deg,rgba(6,10,16,.95),transparent);pointer-events:none;}
+.brand{font-family:monospace;font-weight:700;font-size:13px;letter-spacing:.1em;color:#00f0ff;}
+.brand b{color:#ff2ecb;font-weight:700;}
+.topbtns{display:flex;gap:8px;pointer-events:auto;}
+.tb{font-family:monospace;font-size:11px;background:rgba(255,255,255,.05);border:1px solid #1c2c3d;color:#cfe7ee;padding:8px 12px;border-radius:6px;cursor:pointer;}
+.tb:hover{border-color:#00f0ff;color:#00f0ff;}
+.tb:disabled{opacity:.4;cursor:default;}
+.hint{position:absolute;bottom:12px;left:0;right:0;text-align:center;z-index:10;font-family:monospace;font-size:10px;color:#4a6070;pointer-events:none;}
+#status{position:absolute;top:60px;left:16px;z-index:10;font-family:monospace;font-size:10px;color:#ffb020;max-width:340px;line-height:1.5;}
+/* OVERLAY */
+#ov{position:fixed;inset:0;z-index:200;background:rgba(6,10,16,.98);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
+.obox{width:100%;max-width:460px;}
+.otitle{font-family:monospace;font-size:20px;color:#00f0ff;margin-bottom:2px;}
+.otitle b{color:#ff2ecb;}
+.osub{font-size:12px;color:#6f8a99;font-family:monospace;margin-bottom:22px;}
+.olabel{font-family:monospace;font-size:11px;color:#cfe7ee;display:block;margin:12px 0 5px;letter-spacing:.05em;}
+.oprofbtns{display:flex;gap:8px;margin-bottom:4px;}
+.opb{flex:1;padding:12px;border:2px solid #1c2c3d;border-radius:8px;color:#6f8a99;font-family:monospace;font-size:13px;cursor:pointer;background:transparent;transition:.15s;}
+.opb.sel{border-color:#b14eff;color:#b14eff;background:rgba(177,78,255,.12);}
+.oinput{width:100%;padding:12px;background:#0d1622;border:1px solid #1c2c3d;border-radius:7px;color:#fff;font-size:14px;font-family:monospace;margin-bottom:4px;}
+.oplay{width:100%;padding:15px;background:#00f0ff;color:#04141a;border:none;border-radius:8px;font-family:monospace;font-size:13px;font-weight:700;cursor:pointer;margin-top:14px;letter-spacing:.05em;}
+.oerr{color:#ff3b5c;font-size:11px;font-family:monospace;margin-top:6px;min-height:14px;}
+.odiv{border-top:1px solid #1c2c3d;margin:16px 0 4px;padding-top:4px;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">CYBER<b>QUEST</b> <span style="color:#4a6070;font-size:10px">// QUEST 2</span></div>
+  <div class="topbtns">
+    <button class="tb" id="profileBtn">👤 Profil</button>
+    <button class="tb" id="vrBtn">🥽 VR</button>
+  </div>
+</div>
+<div id="status"></div>
+<div class="hint">GLISSER · CLIC OU GÂCHETTE</div>
+
+<div id="ov">
+  <div class="obox">
+    <div class="otitle">CYBER<b>QUEST</b> VR</div>
+    <div class="osub">Connexion — toutes les clés restent sur cet appareil</div>
+    <span class="olabel">PROFIL</span>
+    <div class="oprofbtns">
+      <button class="opb sel" data-n="simon">🐣 Simon</button>
+      <button class="opb" data-n="niko">🦁 Niko</button>
+    </div>
+    <span class="olabel">CLÉ GROQ <span style="color:#6f8a99">(gsk_...)</span></span>
+    <input class="oinput" type="password" id="gkInput" placeholder="gsk_...">
+    <div class="odiv"></div>
+    <span class="olabel">CLÉ JSONBIN <span style="color:#6f8a99">(X-Master-Key du classement)</span></span>
+    <input class="oinput" type="password" id="jbInput" placeholder="$2a$10$...">
+    <button class="oplay" id="saveBtn">▶ JOUER</button>
+    <div class="oerr" id="oerr"></div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────
+const BIN_ID  = '6a42d25af5f4af5e2943be8f';
+const MODEL   = 'llama-3.3-70b-versatile'; // modèle actuel (llama-3.1-8b-instant déprécié le 17/06/2026)
+const VER     = '3'; // incrémenté = force re-saisie des clés si changement de version
+
+// ── ZONES (identiques iPhone) ───────────────────────────
+const ZONES = [{"id":"python","name":"PYTHON DUNGEON","icon":"🐍","color":"#00f5ff","desc":"Scripting, réseau, crypto · S1-S8","weeks":[{"n":1,"title":"Variables et types","sub":"Bases du langage","topics":["str, int, float, bool, list, dict, tuple","Opérateurs arithmétiques et comparaison","f-strings et conversion de types","Input utilisateur"]},{"n":2,"title":"Conditions et boucles","sub":"Contrôle du flux","topics":["if / elif / else","Boucles for et range()","Boucle while et break/continue","Opérateurs logiques"]},{"n":3,"title":"Fonctions et modules","sub":"Organiser son code","topics":["def, paramètres, return","Valeurs par défaut","import os, sys, pathlib","Créer ses propres modules"]},{"n":4,"title":"Fichiers et exceptions","sub":"Lire, écrire, gérer les erreurs","topics":["open(), read(), write()","Modes r, w, a","try / except / finally","raise pour lever des exceptions"]},{"n":5,"title":"Sockets réseau","sub":"TCP, UDP et scanner de ports","topics":["socket.AF_INET, SOCK_STREAM","Client TCP et timeout","Scanner de ports avec connect_ex()","Récupérer les bannières"]},{"n":6,"title":"Cryptographie","sub":"hashlib, base64, secrets","topics":["base64 : encoder/décoder","hashlib : MD5, SHA1, SHA256","Module secrets pour tokens","Attaque dictionnaire sur MD5"]},{"n":7,"title":"Requests et scraping","sub":"HTTP, APIs REST, BeautifulSoup","topics":["requests : GET, POST, headers","Analyser les réponses JSON","BeautifulSoup pour parser HTML","User-Agent pour simuler un navigateur"]},{"n":8,"title":"Projet Network Scanner","sub":"Assembler toutes les compétences","topics":["Architecture en modules séparés","Port scanner multi-threadé","Grab de bannières des services","Rapport HTML auto-généré","GitHub avec README et docstrings"]}]},{"id":"reseau","name":"NETWORK FORTRESS","icon":"🌐","color":"#00b4d8","desc":"TCP/IP, Cisco, Wireshark, VLAN · S5-S16","weeks":[{"n":1,"title":"Modèle OSI","sub":"Les 7 couches du réseau","topics":["7 couches OSI : rôle et protocoles","Encapsulation et désencapsulation","Modèle TCP/IP 4 couches vs OSI","Mémoriser les couches"]},{"n":2,"title":"Adressage IPv4","sub":"Sous-réseaux et CIDR","topics":["Adresse IP : 4 octets, 32 bits","Masque CIDR /24","Plages privées RFC 1918","Calculer réseau, broadcast, hôtes"]},{"n":3,"title":"TCP et handshake","sub":"Protocole de transport fiable","topics":["TCP vs UDP : garanties et usages","SYN, SYN-ACK, ACK","Numéros de séquence","Fermeture FIN, FIN-ACK, ACK"]},{"n":4,"title":"Wireshark","sub":"Analyser le trafic réseau","topics":["Interface Wireshark : capture en temps réel","Filtres : ip.addr, tcp.port, http, dns","Analyser un échange HTTP et DNS","Détecter un scan nmap dans une capture"]},{"n":5,"title":"DNS et DHCP","sub":"Infrastructure réseau de base","topics":["DNS : types A, AAAA, MX, CNAME, TXT","Chaîne de résolution DNS récursive","DHCP : DORA (Discover, Offer, Request, ACK)","dig et nslookup pour interroger le DNS"]},{"n":6,"title":"Cisco IOS","sub":"CLI switch et routeur","topics":["Modes IOS : User, Privileged, Config","show version, show interfaces, show ip route","Configurer une interface et no shutdown","copy running-config startup-config"]},{"n":7,"title":"VLANs","sub":"Segmentation logique","topics":["VLAN : isoler des groupes sans câble","Créer et nommer des VLANs en IOS","Ports access (1 VLAN) vs trunk (multi)","Standard 802.1Q et tagging"]},{"n":8,"title":"ACL et sécurité réseau","sub":"Filtrer et contrôler le trafic","topics":["ACL standard vs étendue sur Cisco","access-list 101 permit/deny","Appliquer une ACL sur une interface","Détecter anomalies avec Wireshark"]}]},{"id":"systemes","name":"LINUX TEMPLE","icon":"💻","color":"#a855f7","desc":"Linux, Kali, Windows Server, VMs · S3-S18","weeks":[{"n":1,"title":"Linux navigation","sub":"Arborescence et commandes de base","topics":["Arborescence Linux : /, /etc, /home, /var","pwd, ls -la, cd, mkdir, rmdir","cp, mv, rm, touch, cat, less","find, grep, locate"]},{"n":2,"title":"Permissions Linux","sub":"Droits et sécurité fichiers","topics":["Notation rwx et octale (chmod 755)","chmod : modifier les droits","chown et chgrp : changer propriétaire","SUID, SGID, Sticky Bit"]},{"n":3,"title":"Bash scripting","sub":"Automatiser avec des scripts","topics":["Variables, $1 $2 $@ (arguments)","Conditions if/then/fi","Boucles for/while/until","Fonctions et redirections"]},{"n":4,"title":"VirtualBox et VMs","sub":"Créer son lab de sécurité","topics":["Créer une VM Ubuntu et Kali Linux","Modes réseau : NAT, Bridge, Host-Only, Internal","Snapshots pour sauvegarder l'état","Réseau Internal pour isoler le lab"]},{"n":5,"title":"Kali Linux","sub":"Outils offensifs essentiels","topics":["Distribution Kali : 600+ outils","nmap, netcat, John the Ripper, Hydra","Gobuster pour énumérer les répertoires web","Wordlists : rockyou.txt"]},{"n":6,"title":"Windows Server","sub":"Active Directory et administration","topics":["Active Directory : domaine, OU, utilisateurs","Créer et gérer des utilisateurs AD","GPO (Group Policy Objects)","PowerShell : Get-ADUser, Get-Process"]},{"n":7,"title":"Logs et forensics","sub":"Analyser les traces d'activité","topics":["Logs Linux : /var/log/auth.log, syslog","Détecter un brute-force SSH","Windows Event Viewer : Security, System","Lynis audit de sécurité Linux"]},{"n":8,"title":"Lab pentest complet","sub":"Infrastructure de test intégrée","topics":["Lab : Kali + Ubuntu cible + Windows","Réseau Internal VirtualBox isolé","Documenter l'archi avec draw.io","Premier test d'intrusion guidé"]}]},{"id":"thm","name":"TRYHACKME ARENA","icon":"🔐","color":"#ff3b3b","desc":"OSINT, Web, Exploit, CTF · S9-S24","weeks":[{"n":1,"title":"OSINT et reconnaissance","sub":"Collecte passive d'informations","topics":["OSINT : sources publiques légalement accessibles","Google Dorking : site:, filetype:, intitle:","Shodan : inventorier les appareils exposés","theHarvester, WHOIS, Subfinder"]},{"n":2,"title":"Nmap avancé","sub":"Reconnaissance active","topics":["Options : -sV, -sS, -sU, -A, -p-","NSE (Nmap Scripting Engine) --script","Détection d'OS avec -O","Contourner les firewalls : -f, --source-port"]},{"n":3,"title":"Burp Suite","sub":"Proxy d'interception web","topics":["Configurer Burp comme proxy (127.0.0.1:8080)","Intercepter et modifier des requêtes HTTP","Repeater : rejouer et modifier","Intruder : attaques par dictionnaire"]},{"n":4,"title":"SQL Injection","sub":"Exploiter les bases de données","topics":["Injection SQL : concaténation non sécurisée","Bypass authentification OR 1=1","UNION SELECT pour exfiltrer des données","sqlmap pour automatiser la détection"]},{"n":5,"title":"XSS","sub":"Cross-Site Scripting","topics":["XSS réfléchi vs stocké vs DOM-based","Payloads basiques et bypass de filtres","Vol de cookies de session","Protection : htmlspecialchars, CSP headers"]},{"n":6,"title":"LFI et File Upload","sub":"Inclusions et uploads malveillants","topics":["LFI : lire des fichiers serveur","Traversée de répertoires ../../../","File Upload Bypass : extension, MIME","Gobuster pour découvrir les répertoires"]},{"n":7,"title":"Metasploit","sub":"Framework d'exploitation","topics":["Architecture : exploit, payload, auxiliary","msfconsole : search, use, show options, run","msfvenom : générer des payloads","Meterpreter : shell interactif"]},{"n":8,"title":"Privilege Escalation Linux","sub":"Obtenir les droits root","topics":["whoami, id, sudo -l, uname -a","SUID dangereux : find / -perm -4000","Cron jobs writables","LinPEAS pour automatiser l'énumération"]},{"n":9,"title":"Privilege Escalation Windows","sub":"Escalade sur Windows","topics":["whoami /priv, whoami /groups, systeminfo","Services mal configurés","AlwaysInstallElevated","WinPEAS pour automatiser"]},{"n":10,"title":"CTF Machines complètes","sub":"Méthodologie de bout en bout","topics":["Recon, Enum, Exploit, PrivEsc, Flag","Identifier le vecteur d'entrée","Obtenir un shell et le stabiliser","Write-up pendant la résolution"]},{"n":11,"title":"JWT et sessions web","sub":"Sécurité des tokens d'authentification","topics":["JWT structure : header.payload.signature","Attaque alg:none","Faible secret : cracker avec hashcat","Cookies : httpOnly, Secure, SameSite"]},{"n":12,"title":"HackTheBox Easy machines","sub":"Niveau supérieur","topics":["Différences THM vs HackTheBox","Enumération SMB et FTP anonyme","Exploitation de services mal configurés","Write-ups sur GitHub Pages"]}]},{"id":"rootme","name":"ROOTME CITADEL","icon":"🏴","color":"#39ff14","desc":"Crypto, Forensics, Pwn, CTF · S17-S36","weeks":[{"n":1,"title":"Encodages classiques","sub":"Base64, Hex, ROT13","topics":["Base64 : encoder/décoder, identifier le padding","Hexadécimal : octets vers notation 0-9 A-F","ROT13 : décalage 13, appliquer 2x = original","CyberChef pour automatiser"]},{"n":2,"title":"Chiffres classiques","sub":"César, Vigenère, substitution","topics":["César : décalage de 1 à 25, brute-force trivial","Vigenère : clé répétée, attaque Kasiski","Substitution monoalphabétique","Analyse de fréquences : e, a, s, i, t"]},{"n":3,"title":"RSA et hashes","sub":"Cryptographie asymétrique","topics":["RSA : principe p*q=n, clé publique et privée","Factoriser n si p et q sont proches","Hashes : MD5 cassé, SHA1 déprécié, SHA256 standard","Attaques : rainbow tables, dictionnaire, hashcat"]},{"n":4,"title":"Stéganographie","sub":"Cacher des données dans des médias","topics":["LSB (Least Significant Bit) dans les images","steghide pour JPEG et WAV","zsteg pour analyser les plans de bits","ExifTool pour les métadonnées EXIF"]},{"n":5,"title":"Forensics fichiers","sub":"Analyser des fichiers suspects","topics":["Magic bytes : identifier le vrai type de fichier","binwalk : détecter et extraire des fichiers imbriqués","foremost : récupérer depuis image disque","tshark : analyser captures pcap en CLI"]},{"n":6,"title":"Forensics mémoire","sub":"Volatility 3 et dumps RAM","topics":["Volatility 3 : analyser dumps Windows/Linux","Plugins : windows.pslist, windows.netscan","Extraire processus, connexions, hashs NTLM","Créer un dump depuis VirtualBox"]},{"n":7,"title":"pwntools et buffer overflow","sub":"Exploitation de binaires","topics":["pwntools : bibliothèque Python pour le pwn","Chercher l'offset du buffer overflow","ret2win : écraser l'adresse de retour","checksec : vérifier les protections d'un binaire"]},{"n":8,"title":"CTF compétitif","sub":"Compétitions et write-ups","topics":["CTFtime.org : agenda mondial des CTF","Catégories : web, crypto, forensics, pwn, reverse","Organiser une équipe et les rôles","Structure d'un write-up professionnel"]}]},{"id":"elec","name":"ELECTRONICS LAB","icon":"🔌","color":"#00979d","desc":"Arduino, Raspberry Pi, IoT · S1-S52","weeks":[{"n":1,"title":"Arduino premier sketch","sub":"LED, Serial, bases","topics":["Structure : setup() 1x, loop() en boucle","pinMode, digitalWrite, digitalRead, analogRead","Moniteur série : Serial.begin() et println()","Types en C++ Arduino : int, float, bool, String"]},{"n":2,"title":"Capteurs et actionneurs","sub":"DHT11, ultrason, servo, LCD","topics":["DHT11 : mesurer température et humidité","HC-SR04 : mesurer une distance par ultrason","Servo SG90 : contrôle d'angle précis","LCD I2C 16x2 : afficher des données"]},{"n":3,"title":"Protocoles embarqués","sub":"UART, I2C, SPI","topics":["UART : communication série asynchrone","I2C : bus 2 fils, adresses 7 bits","SPI : 4 fils, plus rapide, full-duplex","Déboguer avec un analyseur logique"]},{"n":4,"title":"Raspberry Pi","sub":"Linux embarqué et GPIO","topics":["Installer Raspberry Pi OS avec RPi Imager","SSH depuis PC sans écran (headless)","GPIO en Python : RPi.GPIO ou gpiozero","Serveur web minimal avec Flask sur le Pi"]},{"n":5,"title":"Serveur Flask et IoT","sub":"Dashboard capteurs en temps réel","topics":["Flask : routes, templates, jsonify","Données capteurs vers API REST","Chart.js pour les visualisations","Stocker les données en SQLite"]},{"n":6,"title":"Sécurité IoT","sub":"Analyser les objets connectés","topics":["Inventorier les appareils IoT avec nmap","Capturer le trafic d'un objet (Wireshark)","MQTT : protocole IoT souvent non chiffré","Firmware analysis avec binwalk"]},{"n":7,"title":"Projet IoT Sécurisé","sub":"Dashboard avec authentification","topics":["flask-login : gestion des sessions","HTTPS avec certificat auto-signé","SQLite pour stocker l'historique","Alertes Telegram si seuil dépassé"]},{"n":8,"title":"Système Arduino + Pi","sub":"Projet SIN intégré complet","topics":["Arduino vers Pi via UART : envoi données capteurs","Pi stocke en SQLite, sert le dashboard Flask","Schéma électronique complet avec Fritzing","Documentation technique du projet"]}]}];
+
+// ── ÉTAT ───────────────────────────────────────────────
+function lsGet(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+// Reset si nouvelle version
+if(lsGet('cq_vr_ver')!==VER){ ['cq_vr_profile','cq_vr_groq','cq_vr_jb'].forEach(k=>lsSet(k,'')); lsSet('cq_vr_ver',VER); }
+
+let profile  = lsGet('cq_vr_profile');
+let groqKey  = lsGet('cq_vr_groq');
+let jbKey    = lsGet('cq_vr_jb');
+let myXp=0, myDone={}, myStreak=0;
+let selZone=null, selWeek=null, qLocked=false;
+const statusEl = document.getElementById('status');
+
+function calcXP(done){ let x=0; ZONES.forEach(z=>z.weeks.forEach(w=>{ if(done[z.id+'_'+w.n]) x+=100; })); return x; }
+
+// ── OVERLAY ─────────────────────────────────────────────
+const ov=document.getElementById('ov');
+const gkIn=document.getElementById('gkInput');
+const jbIn=document.getElementById('jbInput');
+const oerr=document.getElementById('oerr');
+let selProf=profile||'simon';
+
+function showOv(){ ov.style.display='flex'; gkIn.value=groqKey; jbIn.value=jbKey; syncPb(); }
+function hideOv(){ ov.style.display='none'; }
+function syncPb(){ document.querySelectorAll('.opb').forEach(b=>b.classList.toggle('sel',b.dataset.n===selProf)); }
+document.querySelectorAll('.opb').forEach(b=>b.addEventListener('click',()=>{ selProf=b.dataset.n; syncPb(); }));
+document.getElementById('saveBtn').addEventListener('click',()=>{
+  const gk=gkIn.value.trim(), jb=jbIn.value.trim();
+  if(!gk.startsWith('gsk_')){ oerr.textContent='Clé Groq invalide — doit commencer par gsk_'; return; }
+  if(!jb.startsWith('$2a$')){ oerr.textContent='Clé JSONBin invalide — doit commencer par $2a$'; return; }
+  profile=selProf; groqKey=gk; jbKey=jb;
+  lsSet('cq_vr_profile',profile); lsSet('cq_vr_groq',groqKey); lsSet('cq_vr_jb',jbKey);
+  oerr.textContent=''; hideOv();
+  loadPlayerData().then(()=>{ renderZones(); loadLB(); });
+});
+document.getElementById('profileBtn').addEventListener('click',showOv);
+if(!profile||!groqKey||!jbKey){ showOv(); }
+
+// ── THREE.JS ────────────────────────────────────────────
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x060a10); scene.fog=new THREE.Fog(0x060a10,2.5,9);
+const cam=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.05,50); cam.position.set(0,1.6,1.6);
+const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(devicePixelRatio); renderer.setSize(innerWidth,innerHeight); renderer.xr.enabled=true; document.body.appendChild(renderer.domElement);
+window.addEventListener('resize',()=>{ cam.aspect=innerWidth/innerHeight; cam.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+scene.add(new THREE.AmbientLight(0x223344,1.2));
+[[-1.5,0xff2ecb],[1.5,0x00f0ff]].forEach(([x,c])=>{ const pl=new THREE.PointLight(c,1,6); pl.position.set(x,2,.5); scene.add(pl); });
+scene.add(new THREE.GridHelper(20,40,0x00f0ff,0x12222e));
+const pGeo=new THREE.BufferGeometry(), pArr=new Float32Array(80*3);
+for(let i=0;i<80;i++){ pArr[i*3]=(Math.random()-.5)*6; pArr[i*3+1]=Math.random()*3+.3; pArr[i*3+2]=(Math.random()-.5)*6; }
+pGeo.setAttribute('position',new THREE.BufferAttribute(pArr,3));
+scene.add(new THREE.Points(pGeo,new THREE.PointsMaterial({color:0x00f0ff,size:.015,transparent:true,opacity:.45})));
+
+// ── CANVAS UTILS ────────────────────────────────────────
+function mkPanel(w,h,fn){ const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d'); if(fn)fn(ctx,w,h); const tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter; return {canvas:c,ctx,tex}; }
+function rr(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function wrap(ctx,txt,x,y,mw,lh){ txt.split(' ').reduce((acc,w)=>{ const t=acc+w+' '; if(ctx.measureText(t).width>mw&&acc){ ctx.fillText(acc,x,y); y+=lh; return w+' '; } return t; },''); }
+function wrapFill(ctx,txt,x,y,mw,lh){ const words=txt.split(' '); let line=''; words.forEach(w=>{ const t=line+w+' '; if(ctx.measureText(t).width>mw&&line){ ctx.fillText(line,x,y); y+=lh; line=w+' '; } else line=t; }); if(line) ctx.fillText(line,x,y); }
+
+// ── TITRE ───────────────────────────────────────────────
+const tP=mkPanel(900,130,(ctx,w)=>{
+  ctx.font='700 50px monospace'; ctx.shadowBlur=16;
+  const cw=ctx.measureText('CYBER').width;
+  const x0=w/2-(cw+ctx.measureText('QUEST').width)/2;
+  ctx.fillStyle='#00f0ff'; ctx.shadowColor='#00f0ff'; ctx.textAlign='left'; ctx.fillText('CYBER',x0,62);
+  ctx.fillStyle='#ff2ecb'; ctx.shadowColor='#ff2ecb'; ctx.fillText('QUEST',x0+cw,62);
+  ctx.shadowBlur=0; ctx.fillStyle='#6f8a99'; ctx.font='400 17px monospace'; ctx.textAlign='center';
+  ctx.fillText('52 SEMAINES · 6 ZONES · QCM IA',w/2,98);
+});
+const tM=new THREE.Mesh(new THREE.PlaneGeometry(1.48,.215),new THREE.MeshBasicMaterial({map:tP.tex,transparent:true}));
+tM.position.set(0,2.05,-1.3); scene.add(tM);
+
+// ── PANNEAU PROFIL ──────────────────────────────────────
+const leftG=new THREE.Group(); leftG.position.set(-.95,1.5,-.95); leftG.rotation.y=Math.PI*.16; scene.add(leftG);
+function drawProfile(ctx,w,h){
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='rgba(13,22,34,.93)'; rr(ctx,0,0,w,h,18); ctx.fill();
+  ctx.strokeStyle='#1c2c3d'; ctx.lineWidth=2; rr(ctx,1,1,w-2,h-2,18); ctx.stroke();
+  ctx.fillStyle='#b14eff'; ctx.fillRect(0,18,4,h-36);
+  ctx.fillStyle='#b14eff'; ctx.font='700 15px monospace'; ctx.textAlign='left'; ctx.fillText('PROFIL',24,38);
+  const nm=(profile||'???').toUpperCase();
+  const g=ctx.createLinearGradient(24,54,104,134); g.addColorStop(0,'#b14eff'); g.addColorStop(1,'#00f0ff');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(64,94,38,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#060a10'; ctx.font='700 18px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(nm.slice(0,2),64,94);
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillStyle='#fff'; ctx.font='700 18px monospace'; ctx.fillText(nm,112,86);
+  ctx.fillStyle='#b14eff'; ctx.font='400 13px sans-serif'; ctx.fillText('Quest 2 · VR',112,108);
+  ctx.fillStyle='#6f8a99'; ctx.font='400 12px monospace';
+  ctx.fillText('XP',24,162); ctx.textAlign='right'; ctx.fillText(myXp+' XP',w-24,162); ctx.textAlign='left';
+  ctx.fillStyle='rgba(255,255,255,.06)'; rr(ctx,24,170,w-48,7,3); ctx.fill();
+  const g2=ctx.createLinearGradient(24,0,w-24,0); g2.addColorStop(0,'#b14eff'); g2.addColorStop(1,'#00f0ff');
+  ctx.fillStyle=g2; rr(ctx,24,170,(w-48)*Math.min(1,(myXp%1000)/1000),7,3); ctx.fill();
+  const nd=Object.values(myDone).filter(Boolean).length;
+  ctx.fillStyle='#ffb020'; ctx.font='700 13px monospace'; ctx.fillText('🔥 '+myStreak+' jours',24,208);
+  ctx.fillStyle='#6f8a99'; ctx.font='400 12px monospace'; ctx.fillText(nd+' missions terminées',24,228);
+}
+const profP=mkPanel(420,268,drawProfile);
+leftG.add(new THREE.Mesh(new THREE.PlaneGeometry(.59,.376),new THREE.MeshBasicMaterial({map:profP.tex,transparent:true})));
+
+// ── PANNEAU CLASSEMENT ──────────────────────────────────
+const rightG=new THREE.Group(); rightG.position.set(.95,1.5,-.95); rightG.rotation.y=-Math.PI*.16; scene.add(rightG);
+let lbRows=[];
+function drawLB(ctx,w,h){
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='rgba(13,22,34,.93)'; rr(ctx,0,0,w,h,18); ctx.fill();
+  ctx.strokeStyle='#1c2c3d'; ctx.lineWidth=2; rr(ctx,1,1,w-2,h-2,18); ctx.stroke();
+  ctx.fillStyle='#ffb020'; ctx.fillRect(0,18,4,h-36);
+  ctx.fillStyle='#ffb020'; ctx.font='700 15px monospace'; ctx.textAlign='left'; ctx.fillText('CLASSEMENT',24,38);
+  if(!lbRows.length){ ctx.fillStyle='#6f8a99'; ctx.font='400 13px monospace'; ctx.fillText('Chargement…',24,76); return; }
+  let y=78; lbRows.slice(0,4).forEach((r,i)=>{
+    if(r.me){ ctx.fillStyle='rgba(0,240,255,.07)'; rr(ctx,16,y-20,w-32,36,6); ctx.fill(); }
+    ctx.fillStyle='#6f8a99'; ctx.font='400 13px monospace'; ctx.fillText(('0'+(i+1)).slice(-2),24,y);
+    ctx.fillStyle=r.me?'#00f0ff':'#cfe7ee'; ctx.font=(r.me?'700 ':'400 ')+'15px sans-serif'; ctx.fillText(r.name,56,y);
+    ctx.fillStyle='#ffb020'; ctx.font='400 12px monospace'; ctx.textAlign='right'; ctx.fillText(r.xp+' XP',w-24,y); ctx.textAlign='left';
+    y+=50;
+  });
+}
+const lbP=mkPanel(420,268,drawLB);
+rightG.add(new THREE.Mesh(new THREE.PlaneGeometry(.59,.376),new THREE.MeshBasicMaterial({map:lbP.tex,transparent:true})));
+
+// ── PANNEAU CENTRE ──────────────────────────────────────
+const cG=new THREE.Group(); cG.position.set(0,1.55,-1.3); scene.add(cG);
+const cP=mkPanel(680,460,null);
+cG.add(new THREE.Mesh(new THREE.PlaneGeometry(1.06,.72),new THREE.MeshBasicMaterial({map:cP.tex,transparent:true})));
+const btns=[]; const BTN_COLORS=[]; 
+for(let i=0;i<6;i++){
+  const p=mkPanel(640,70,null);
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(1.0,.11),new THREE.MeshBasicMaterial({map:p.tex,transparent:true}));
+  m.position.set(0,.3-i*.12,.01); m.visible=false; m.userData={p,cb:null};
+  cG.add(m); btns.push(m);
+}
+// XP float
+const xpP=mkPanel(280,80,null);
+const xpM=new THREE.Mesh(new THREE.PlaneGeometry(.36,.1),new THREE.MeshBasicMaterial({map:xpP.tex,transparent:true,opacity:0}));
+xpM.position.set(.46,.28,.02); cG.add(xpM); let xpA=null;
+
+function cBg(ctx,w,h,title,sub,body,col){
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='rgba(13,22,34,.94)'; rr(ctx,0,0,w,h,20); ctx.fill();
+  ctx.strokeStyle='#1c2c3d'; ctx.lineWidth=2; rr(ctx,1,1,w-2,h-2,20); ctx.stroke();
+  ctx.fillStyle=col||'#00f0ff'; ctx.fillRect(0,26,4,h-52);
+  ctx.fillStyle=col||'#00f0ff'; ctx.shadowColor=col||'#00f0ff'; ctx.shadowBlur=6;
+  ctx.font='700 17px monospace'; ctx.textAlign='left'; ctx.fillText(title,26,46); ctx.shadowBlur=0;
+  if(sub){ ctx.fillStyle='#6f8a99'; ctx.font='400 12px monospace'; ctx.fillText(sub,26,66); }
+  if(body){ ctx.fillStyle='#e8f4f8'; ctx.font='400 19px sans-serif'; wrapFill(ctx,body,26,100,628,27); }
+}
+function dBtn(m,label,col,hlBg){
+  const ctx=m.userData.p.ctx; ctx.clearRect(0,0,640,70);
+  ctx.fillStyle=hlBg||'rgba(255,255,255,.025)'; rr(ctx,0,0,640,70,9); ctx.fill();
+  ctx.strokeStyle=col||'#1c2c3d'; ctx.lineWidth=3; rr(ctx,2,2,636,66,9); ctx.stroke();
+  ctx.fillStyle='#cfe7ee'; ctx.font='600 22px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText(label,22,35); m.userData.p.tex.needsUpdate=true;
+}
+function hideB(){ btns.forEach(m=>m.visible=false); }
+function showB(items){ hideB(); items.forEach((it,i)=>{ if(i>=6)return; const m=btns[i]; m.visible=true; m.position.y=.3-i*.12; dBtn(m,it.label,it.col,it.bg); m.userData.cb=it.cb; }); }
+
+// ── NAVIGATION ZONES ────────────────────────────────────
+function renderZones(){
+  cBg(cP.ctx,680,460,'CHOISIR UNE ZONE',null,'Sélectionne ta zone de formation :','#00f0ff'); cP.tex.needsUpdate=true;
+  showB(ZONES.map(z=>({
+    label: z.icon+' '+z.name+' ('+z.weeks.filter(w=>myDone[z.id+'_'+w.n]).length+'/'+z.weeks.length+')',
+    col: z.color,
+    bg: z.weeks.every(w=>myDone[z.id+'_'+w.n])?'rgba(39,224,160,.06)':null,
+    cb: ()=>renderWeeks(z)
+  })));
+}
+
+// ── NAVIGATION SEMAINES ─────────────────────────────────
+function renderWeeks(z,page){
+  const p=page||0; const start=p*5; const slice=z.weeks.slice(start,start+5);
+  cBg(cP.ctx,680,460,z.icon+' '+z.name,z.desc,null,z.color); cP.tex.needsUpdate=true;
+  const items=[{label:'← Retour zones',col:'#6f8a99',cb:renderZones}];
+  slice.forEach(w=>{ const done=!!myDone[z.id+'_'+w.n]; items.push({label:(done?'✅ ':'▶ ')+'S'+w.n+' · '+w.title,col:done?'#27e0a0':z.color,bg:done?'rgba(39,224,160,.05)':null,cb:()=>loadQ(z,w)}); });
+  if(z.weeks.length>5&&p===0) items.push({label:'→ S6-S'+z.weeks.length,col:'#ffb020',cb:()=>renderWeeks(z,1)});
+  if(p>0) items[items.length>5?items.length-1:0]={label:'← S1-S5',col:'#6f8a99',cb:()=>renderWeeks(z,0)};
+  showB(items);
+}
+
+// ── QCM GROQ ────────────────────────────────────────────
+async function loadQ(z,w){
+  selZone=z; selWeek=w; qLocked=true; hideB();
+  cBg(cP.ctx,680,460,'⏳ Génération…',z.name+' · S'+w.n+' '+w.title,null,z.color); cP.tex.needsUpdate=true;
+  try{
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},
+      body:JSON.stringify({
+        model:MODEL, max_tokens:500, temperature:0.8,
+        messages:[
+          {role:'system',content:'Tu génères des QCM cybersécurité en français pour lycéen STI2D. Réponds UNIQUEMENT en JSON compact: {"q":"...","opts":["...","...","...","..."],"ok":0,"exp":"..."}'},
+          {role:'user',content:'Zone: '+z.name+'\nS'+w.n+': '+w.title+' — '+w.sub+'\nSujets: '+w.topics.join(', ')+'\nUne question précise sur ces sujets.'}
+        ]
+      })
+    });
+    if(!res.ok){ const err=await res.json().catch(()=>({})); throw new Error('HTTP '+res.status+' — '+(err.error?.message||'clé refusée?')); }
+    const raw=(await res.json()).choices?.[0]?.message?.content||'';
+    const d=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const done=!!myDone[z.id+'_'+w.n];
+    cBg(cP.ctx,680,460,'QCM · '+w.title.toUpperCase(),z.name+' S'+w.n+(done?' ✅ Déjà faite':''),d.q,z.color); cP.tex.needsUpdate=true;
+    const L=['A','B','C','D'];
+    showB([{label:'← Semaines',col:'#6f8a99',cb:()=>renderWeeks(z)},...d.opts.slice(0,4).map((o,i)=>({label:L[i]+' · '+o,col:z.color,cb:()=>onAns(i,d.ok,d.exp,z,w)}))]);
+    qLocked=false;
+  }catch(e){
+    cBg(cP.ctx,680,460,'ERREUR','',''+e.message,'#ff3b5c'); cP.tex.needsUpdate=true;
+    showB([{label:'← Retour semaines',col:'#6f8a99',cb:()=>renderWeeks(z)}]); qLocked=false;
+  }
+}
+
+// ── VALIDATION ──────────────────────────────────────────
+async function onAns(idx,ok,exp,z,w){
+  if(qLocked)return; qLocked=true;
+  const correct=idx===ok;
+  cBg(cP.ctx,680,460,correct?'✅ CORRECT !':'❌ RATÉ',z.name+' S'+w.n,exp+(correct&&!myDone[z.id+'_'+w.n]?'\n\n+100 XP !':''),correct?'#27e0a0':'#ff3b5c'); cP.tex.needsUpdate=true;
+  if(correct&&!myDone[z.id+'_'+w.n]){
+    const c=xpP.ctx; c.clearRect(0,0,280,80); c.fillStyle='#27e0a0'; c.font='700 36px monospace'; c.textAlign='center'; c.fillText('+100 XP',140,50); xpP.tex.needsUpdate=true;
+    xpM.material.opacity=1; xpA={t:0};
+    await syncProg(z.id+'_'+w.n);
+  }
+  setTimeout(()=>{ correct?renderWeeks(z):loadQ(z,w); },2500);
+}
+
+// ── JSONBIN READ ─────────────────────────────────────────
+async function loadPlayerData(){
+  if(!jbKey)return;
+  try{
+    const res=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest',{headers:{'X-Master-Key':jbKey}});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const record=(await res.json()).record||{};
+    const e=Object.values(record).find(v=>v&&(v.name||'').toLowerCase()===profile);
+    if(e){ myDone=e.done||{}; myStreak=e.streak||0; myXp=calcXP(myDone); }
+  }catch(e){ statusEl.textContent='Lecture JSONBin: '+e.message; }
+}
+
+// ── JSONBIN WRITE ────────────────────────────────────────
+async function syncProg(key){
+  if(!jbKey)return;
+  try{
+    const r1=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest',{headers:{'X-Master-Key':jbKey}});
+    const record=(await r1.json()).record||{};
+    let tk=Object.keys(record).find(k=>k!=='init'&&record[k]&&(record[k].name||'').toLowerCase()===profile);
+    if(!tk){ tk='p_'+Date.now(); record[tk]={name:profile.charAt(0).toUpperCase()+profile.slice(1),avatar:'🥽',xp:0,done:{},streak:myStreak,updatedAt:Date.now()}; }
+    if(!record[tk].done) record[tk].done={};
+    record[tk].done[key]=true; myDone[key]=true; myXp=calcXP(myDone);
+    record[tk].xp=myXp; record[tk].updatedAt=Date.now();
+    await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':jbKey},body:JSON.stringify(record)});
+    loadLB();
+  }catch(e){ statusEl.style.color='#ff6b81'; statusEl.textContent='Sync: '+e.message; }
+}
+
+// ── JSONBIN CLASSEMENT ───────────────────────────────────
+async function loadLB(){
+  if(!jbKey)return;
+  try{
+    const res=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest',{headers:{'X-Master-Key':jbKey}});
+    const rec=(await res.json()).record||{};
+    lbRows=Object.entries(rec).filter(([k,v])=>k!=='init'&&v&&v.name).map(([,v])=>({name:v.name,xp:calcXP(v.done||{}),me:(v.name||'').toLowerCase()===profile}));
+    lbRows.sort((a,b)=>b.xp-a.xp);
+    drawLB(lbP.ctx,420,268); lbP.tex.needsUpdate=true;
+  }catch(e){ /* silencieux */ }
+}
+setInterval(loadLB,20000);
+
+// ── DESKTOP CONTROLS ─────────────────────────────────────
+let yaw=0,pit=0,drag=false,lx=0,ly=0;
+renderer.domElement.addEventListener('pointerdown',e=>{ if(renderer.xr.isPresenting)return; drag=true;lx=e.clientX;ly=e.clientY; });
+window.addEventListener('pointerup',()=>drag=false);
+window.addEventListener('pointermove',e=>{ if(!drag||renderer.xr.isPresenting)return; yaw-=(e.clientX-lx)*.004; pit-=(e.clientY-ly)*.003; pit=Math.max(-1,Math.min(1,pit)); lx=e.clientX;ly=e.clientY; cam.rotation.set(pit,yaw,0,'YXZ'); });
+
+// ── RAYCAST ──────────────────────────────────────────────
+const RC=new THREE.Raycaster(); const MV=new THREE.Vector2(); const TM=new THREE.Matrix4();
+function doRay(origin,dir){ RC.ray.origin.copy(origin); RC.ray.direction.copy(dir); const h=RC.intersectObjects(btns.filter(m=>m.visible)); if(h.length&&h[0].object.userData.cb) h[0].object.userData.cb(); }
+renderer.domElement.addEventListener('click',e=>{ if(renderer.xr.isPresenting)return; MV.x=(e.clientX/innerWidth)*2-1;MV.y=-(e.clientY/innerHeight)*2+1; RC.setFromCamera(MV,cam); const h=RC.intersectObjects(btns.filter(m=>m.visible)); if(h.length&&h[0].object.userData.cb) h[0].object.userData.cb(); });
+[0,1].forEach(i=>{ const c=renderer.xr.getController(i); const ln=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,0,0),new THREE.Vector3(0,0,-1)]),new THREE.LineBasicMaterial({color:0x00f0ff,opacity:.6,transparent:true})); ln.scale.z=5; c.add(ln); c.addEventListener('selectstart',()=>{ TM.identity().extractRotation(c.matrixWorld); const o=new THREE.Vector3().setFromMatrixPosition(c.matrixWorld); const d=new THREE.Vector3(0,0,-1).applyMatrix4(TM); doRay(o,d); }); scene.add(c); });
+
+// ── VR BUTTON ────────────────────────────────────────────
+const vrBtn=document.getElementById('vrBtn');
+if(!navigator.xr) vrBtn.disabled=true;
+else navigator.xr.isSessionSupported('immersive-vr').then(s=>{ if(!s) vrBtn.disabled=true; });
+let xrS=null;
+vrBtn.addEventListener('click',async()=>{
+  if(xrS){xrS.end();return;}
+  try{ const s=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor']}); xrS=s; renderer.xr.setSession(s); vrBtn.textContent='⏹ Stop VR'; s.addEventListener('end',()=>{xrS=null;vrBtn.textContent='🥽 VR';}); }
+  catch(e){ statusEl.textContent='VR: '+e.message; }
+});
+
+// ── BOUCLE ───────────────────────────────────────────────
+let tt=0;
+renderer.setAnimationLoop(()=>{
+  tt+=.01;
+  const pa=pGeo.attributes.position.array;
+  for(let i=0;i<80;i++) pa[i*3+1]+=Math.sin(tt+i)*.0004;
+  pGeo.attributes.position.needsUpdate=true;
+  if(xpA){ xpA.t+=.02; xpM.position.y=.28+xpA.t*.13; xpM.material.opacity=Math.max(0,1-xpA.t); if(xpA.t>1){xpA=null;xpM.position.y=.28;} }
+  drawProfile(profP.ctx,420,268); profP.tex.needsUpdate=true;
+  renderer.render(scene,cam);
+});
+
+// ── INIT ─────────────────────────────────────────────────
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+if(profile&&groqKey&&jbKey) loadPlayerData().then(()=>{ renderZones(); loadLB(); });
+</script>
+</body>
+</html>
