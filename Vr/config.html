@@ -54,15 +54,13 @@ input[type=password],input[type=text]{width:100%;padding:13px;background:#060a10
   <div class="card">
     <div class="card-title">ÉTAPE 2 — CLÉ GROQ</div>
     <label>Ta clé personnelle (commence par gsk_)</label>
-    <input type="password" id="gkInput" placeholder="gsk_...">
-    <button class="showbtn" onclick="toggle('gkInput')">👁 Afficher/masquer</button>
+    <input type="password" id="gkInput" placeholder="gsk_..." autocomplete="off">
   </div>
 
   <div class="card">
     <div class="card-title">ÉTAPE 3 — CLÉ JSONBIN</div>
     <label>X-Master-Key du classement (commence par $2a$)</label>
-    <input type="password" id="jbInput" placeholder="$2a$10$...">
-    <button class="showbtn" onclick="toggle('jbInput')">👁 Afficher/masquer</button>
+    <input type="password" id="jbInput" placeholder="$2a$10$..." autocomplete="off">
   </div>
 
   <button class="genbtn" onclick="generate()">📱 GÉNÉRER LE QR CODE POUR LE QUEST 2</button>
@@ -98,11 +96,6 @@ document.querySelectorAll('.pb').forEach(b => {
     document.querySelectorAll('.pb').forEach(x => x.classList.toggle('sel', x.dataset.n === selP));
   });
 });
-
-function toggle(id) {
-  const el = document.getElementById(id);
-  el.type = el.type === 'password' ? 'text' : 'password';
-}
 
 function generate() {
   const g = document.getElementById('gkInput').value.trim();
