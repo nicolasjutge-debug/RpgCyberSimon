@@ -1332,20 +1332,24 @@ var guestProfile = {name:'', xp:0, done:{}, bonusClaimed:{}};
 var GUEST_BIN_ID = '6a42d25af5f4af5e2943be8f';
 
 // ─── Helper JSONBin ──────────────────────────────────
+function _getBinId(){ return (typeof jsonbinId!=='undefined'&&jsonbinId) || GUEST_BIN_ID; }
+function _getMk(){ return (typeof jsonbinKey!=='undefined'&&jsonbinKey) || null; }
 async function readGuestBin(){
-  var headers = {};
-  if(jsonbinKey) headers['X-Master-Key'] = jsonbinKey;
-  var res = await fetch('https://api.jsonbin.io/v3/b/'+GUEST_BIN_ID+'/latest', {headers:headers});
-  if(!res.ok) throw new Error('Bin inaccessible (HTTP '+res.status+')');
+  var bid=_getBinId(), mk=_getMk();
+  var headers = mk ? {'X-Master-Key':mk} : {};
+  var res = await fetch('https://api.jsonbin.io/v3/b/'+bid+'/latest', {headers:headers});
+  if(!res.ok) throw new Error('Bin inaccessible HTTP '+res.status+(mk?'':' — JSONBin non configure'));
   return (await res.json()).record || {};
 }
 async function writeGuestBin(rec){
-  if(!jsonbinKey) throw new Error('Pas de cle JSONBin configuree');
-  await fetch('https://api.jsonbin.io/v3/b/'+GUEST_BIN_ID, {
+  var bid=_getBinId(), mk=_getMk();
+  if(!mk) throw new Error('Cle JSONBin introuvable. Va dans Classement → Gerer → configure ta cle JSONBin.');
+  var res=await fetch('https://api.jsonbin.io/v3/b/'+bid, {
     method:'PUT',
-    headers:{'Content-Type':'application/json','X-Master-Key':jsonbinKey},
+    headers:{'Content-Type':'application/json','X-Master-Key':mk},
     body:JSON.stringify(rec)
   });
+  if(!res.ok){ var e=await res.json().catch(function(){return{};}); throw new Error('Ecriture refusee: '+(e.message||res.status)); }
 }
 
 // ─── GUEST MODAL ────────────────────────────────────
@@ -1438,6 +1442,14 @@ function onGererClick(){
 
 async function openAdminModal(){
   el('admin-modal').classList.add('show');
+  var mk2=_getMk();
+  if(!mk2){
+    el('admin-local-list').innerHTML='<div style="font-size:11px;color:var(--amber)">Configure ta cle JSONBin dans Classement → Gerer avant d\'utiliser l\'admin.</div>';
+    el('admin-guest-list').innerHTML='';
+    var esEl=document.getElementById('emailjs-status');
+    if(esEl)esEl.textContent='';
+    return;
+  }
   var esEl=document.getElementById('emailjs-status');
   if(esEl){esEl.textContent=EMAILJS_PUBLIC_KEY.startsWith('<')?'EmailJS non configure (voir tuto)':'EmailJS configure OK';}
   // Joueurs locaux
@@ -1500,12 +1512,12 @@ function deletePlayerAdmin(pid){
 }
 
 async function toggleGuestSusp(k,cur){
-  try{var rec=await readGuestBin();if(rec[k])rec[k].suspended=!cur;await writeGuestBin(rec);openAdminModal();}
+  try{var rec=await readGuestBin();if(rec[k])rec[k].suspended=!cur;await writeGuestBin(rec);toast((cur?'Compte restaure':'Compte suspendu'));openAdminModal();}
   catch(e){toast('Erreur: '+e.message);}
 }
 async function deleteGuest(k){
   if(!confirm('Supprimer ce compte guest ?'))return;
-  try{var rec=await readGuestBin();delete rec[k];await writeGuestBin(rec);openAdminModal();}
+  try{var rec=await readGuestBin();delete rec[k];await writeGuestBin(rec);toast('Compte supprime');openAdminModal();}
   catch(e){toast('Erreur: '+e.message);}
 }
 

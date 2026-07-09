@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CyberQuest Admin</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080810;font-family:-apple-system,sans-serif;color:#cfe7ee;padding-bottom:40px}
+.hdr{background:#0d0d1a;border-bottom:1px solid #1c2c3d;padding:14px 16px}
+.logo{font-family:monospace;font-weight:700;font-size:15px;color:#00f0ff}.logo b{color:#ff2ecb}
+.sub{font-size:10px;color:#6f8a99;font-family:monospace;margin-top:2px}
+.card{margin:12px 14px;background:#0d1622;border:1px solid #1c2c3d;border-radius:11px;overflow:hidden}
+.ct{background:#131d2e;padding:10px 14px;font-family:monospace;font-size:10px;letter-spacing:.08em;color:#00f0ff}
+.cb{padding:14px}
+label{display:block;font-family:monospace;font-size:10px;color:#6f8a99;margin:8px 0 4px}
+input,select{width:100%;padding:11px;background:#060a10;border:1px solid #1c2c3d;border-radius:7px;color:#fff;font-size:13px;font-family:monospace}
+.btn{width:100%;padding:12px;border:none;border-radius:8px;font-family:monospace;font-size:11px;font-weight:700;cursor:pointer;margin-top:10px}
+.bc{background:#00f0ff;color:#04141a}.bp{background:rgba(177,78,255,.15);color:#b14eff;border:1px solid #b14eff}
+.ba{background:rgba(255,176,32,.1);color:#ffb020;border:1px solid #ffb020}
+.br{background:rgba(255,59,92,.1);color:#ff3b5c;border:1px solid #ff3b5c}
+.bz{background:rgba(0,240,255,.08);color:#00f0ff;border:1px solid #00f0ff}
+.bsm{width:auto;padding:5px 10px;margin-top:0;font-size:10px}
+.msg{font-family:monospace;font-size:11px;margin-top:7px;padding:8px;border-radius:6px;min-height:12px;line-height:1.5}
+.mok{color:#27e0a0;background:rgba(39,224,160,.08);border:1px solid rgba(39,224,160,.2)}
+.mer{color:#ff3b5c;background:rgba(255,59,92,.08);border:1px solid rgba(255,59,92,.2)}
+.mam{color:#ffb020;background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.2)}
+.mi{color:#00f0ff;background:rgba(0,240,255,.06);border:1px solid rgba(0,240,255,.15)}
+.gcard{background:#060a10;border:1px solid #1c2c3d;border-radius:9px;padding:12px;margin-bottom:10px}
+.gname{font-family:monospace;font-size:13px;font-weight:700;margin-bottom:4px}
+.gpwd{font-family:monospace;font-size:20px;letter-spacing:5px;color:#00f0ff;text-align:center;background:#0d1622;padding:8px;border-radius:6px;margin:7px 0}
+.ginfo{font-size:11px;color:#6f8a99;margin-bottom:8px;line-height:1.5;font-family:monospace}
+.gbtns{display:flex;gap:6px;flex-wrap:wrap}
+.newpwd{background:rgba(0,240,255,.06);border:1px solid rgba(0,240,255,.2);border-radius:8px;padding:12px;display:none;margin-top:10px;font-family:monospace;font-size:13px}
+.newpwd .pwdval{font-size:28px;font-weight:700;letter-spacing:8px;color:#00f0ff;text-align:center;display:block;margin:8px 0}
+.info{background:rgba(255,176,32,.07);border:1px solid rgba(255,176,32,.2);border-radius:8px;padding:10px;font-size:12px;color:#ffb020;margin:8px 0;line-height:1.5}
+.ok{background:rgba(39,224,160,.07);border:1px solid rgba(39,224,160,.2);border-radius:8px;padding:10px;font-size:12px;color:#27e0a0;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="hdr"><div class="logo">CYBER<b>QUEST</b></div><div class="sub">Panel Admin — Simon</div></div>
+
+<!-- CONNEXION -->
+<div class="card" id="loginCard">
+  <div class="ct">CLE JSONBIN — Connexion Admin</div>
+  <div class="cb">
+    <div class="info">Entre ta X-Master-Key JSONBin. Elle est sauvegardée sur cet appareil uniquement.</div>
+    <label>X-Master-Key JSONBin</label>
+    <input type="password" id="mkInput" placeholder="$2a$10$..." autocomplete="off">
+    <button class="btn bc" onclick="connect()">CONNECTER</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- PANEL PRINCIPAL -->
+<div id="mainPanel" style="display:none">
+
+  <!-- RENDRE BIN PUBLIC -->
+  <div class="card">
+    <div class="ct">JSONBIN — LECTURE PUBLIQUE (requis pour les guests)</div>
+    <div class="cb">
+      <div class="info">Active la lecture publique pour que les guests puissent s'inscrire depuis n'importe quel appareil.</div>
+      <button class="btn bc" onclick="makePublic()">ACTIVER LECTURE PUBLIQUE</button>
+      <div class="msg" id="pubMsg"></div>
+    </div>
+  </div>
+
+  <!-- CREER GUEST -->
+  <div class="card">
+    <div class="ct">CREER UN COMPTE GUEST</div>
+    <div class="cb">
+      <div class="ok">Le guest choisit son propre mot de passe dans l'app. Tu peux aussi en créer un ici.</div>
+      <label>Nom du guest</label>
+      <input type="text" id="gNameIn" placeholder="ex: Jean, Alice...">
+      <label>Duree (heures)</label>
+      <input type="number" id="gHours" value="48">
+      <label>Zones autorisees (vide = toutes)</label>
+      <input type="text" id="gZones" placeholder="python,reseau,systemes...">
+      <label>XP maximum (0 = illimite)</label>
+      <input type="number" id="gXpCap" value="0">
+      <label>Quetes bonus</label>
+      <select id="gBonus"><option value="1">Activees</option><option value="0">Desactivees</option></select>
+      <button class="btn bp" onclick="createGuest()">+ CREER LE COMPTE</button>
+      <div class="newpwd" id="newGuestResult">
+        <div>Compte crée !</div>
+        <span class="pwdval" id="newGuestPwd"></span>
+        <div id="newGuestName" style="text-align:center;font-size:12px;color:#6f8a99"></div>
+        <div style="font-size:11px;color:#6f8a99;margin-top:6px">Communique ce mot de passe au guest.</div>
+      </div>
+      <div class="msg" id="createMsg"></div>
+    </div>
+  </div>
+
+  <!-- LISTE GUESTS -->
+  <div class="card">
+    <div class="ct" style="display:flex;align-items:center;justify-content:space-between">
+      <span>COMPTES GUESTS</span>
+      <button class="btn bz bsm" onclick="loadGuests()">↻ Actualiser</button>
+    </div>
+    <div class="cb" id="guestList"><div style="color:#6f8a99;font-size:11px;font-family:monospace">Chargement...</div></div>
+  </div>
+
+  <!-- DECONNECTER -->
+  <div style="margin:12px 14px">
+    <button class="btn" style="background:transparent;border:1px solid #1c2c3d;color:#6f8a99" onclick="decoAdmin()">Deconnecter</button>
+  </div>
+</div>
+
+<script>
+var BIN='6a42d25af5f4af5e2943be8f';
+var mk='';
+function lsg(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
+function lss(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function setMsg(id,txt,type){var el=document.getElementById(id);if(!el)return;el.textContent=txt;el.className='msg '+(type||'');}
+
+window.addEventListener('load',function(){
+  var saved=lsg('cq_admin_mk');
+  if(saved){document.getElementById('mkInput').value=saved;connect();}
+});
+
+async function connect(){
+  var k=document.getElementById('mkInput').value.trim();
+  if(!k.startsWith('$2a$')){setMsg('loginMsg','Cle invalide ($2a$10$...)','mer');return;}
+  setMsg('loginMsg','Connexion...','mi');
+  try{
+    var res=await fetch('https://api.jsonbin.io/v3/b/'+BIN+'/latest',{headers:{'X-Master-Key':k}});
+    if(!res.ok)throw new Error('HTTP '+res.status+' — cle incorrecte?');
+    mk=k; lss('cq_admin_mk',mk);
+    document.getElementById('loginCard').style.display='none';
+    document.getElementById('mainPanel').style.display='block';
+    loadGuests();
+  }catch(e){setMsg('loginMsg','Erreur: '+e.message,'mer');}
+}
+
+async function readBin(){
+  var r=await fetch('https://api.jsonbin.io/v3/b/'+BIN+'/latest',{headers:{'X-Master-Key':mk}});
+  if(!r.ok)throw new Error('Lecture echouee HTTP '+r.status);
+  return (await r.json()).record||{};
+}
+async function writeBin(rec){
+  var r=await fetch('https://api.jsonbin.io/v3/b/'+BIN,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':mk},body:JSON.stringify(rec)});
+  if(!r.ok){var e=await r.json().catch(function(){return{};});throw new Error('Ecriture echouee: '+(e.message||r.status));}
+}
+
+async function makePublic(){
+  setMsg('pubMsg','Tentative API...','mi');
+  try{
+    var rec=await readBin();
+    // Methode : X-Bin-Private header dans PUT
+    var r=await fetch('https://api.jsonbin.io/v3/b/'+BIN,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':mk,'X-Bin-Private':'false'},
+      body:JSON.stringify(rec)
+    });
+    var d=await r.json().catch(function(){return{};});
+    if(r.ok&&d.metadata){
+      var isPriv=d.metadata.private;
+      if(isPriv===false){setMsg('pubMsg','Bin rendu public ! Les guests peuvent s\'inscrire.','mok');return;}
+    }
+    throw new Error('');
+  }catch(e){}
+  // Fallback manuel
+  document.getElementById('pubMsg').className='msg mam';
+  document.getElementById('pubMsg').innerHTML=
+    '<b>Methode manuelle :</b><br>'
+    +'1. Ouvre <a href="https://jsonbin.io/app/bins" target="_blank" style="color:#00f0ff">jsonbin.io/app/bins</a><br>'
+    +'2. Clique sur ton bin<br>'
+    +'3. En haut du bin : icone 🔒 ou bouton "Make Public"<br>'
+    +'4. Confirme → le bin est maintenant lisible par les guests';
+}
+
+async function createGuest(){
+  var name=document.getElementById('gNameIn').value.trim();
+  if(!name){setMsg('createMsg','Entre un nom','mer');return;}
+  setMsg('createMsg','Creation...','mi');
+  var chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var pwd='';for(var i=0;i<6;i++)pwd+=chars[Math.floor(Math.random()*chars.length)];
+  var hours=parseInt(document.getElementById('gHours').value)||48;
+  var zonesIn=document.getElementById('gZones').value.trim();
+  var zones=zonesIn?zonesIn.split(',').map(function(s){return s.trim();}):null;
+  var xcap=parseInt(document.getElementById('gXpCap').value)||null;
+  var bonus=document.getElementById('gBonus').value==='1';
+  try{
+    var rec=await readBin();
+    var exists=Object.values(rec).some(function(v){return v&&v.type==='guest'&&(v.name||'').toLowerCase()===name.toLowerCase();});
+    if(exists){setMsg('createMsg','Ce nom existe deja','mer');return;}
+    rec['g_'+Date.now()]={name:name,type:'guest',password:pwd,xp:0,done:{},streak:0,bonusClaimed:{},
+      allowedZones:zones,xpCap:xcap&&xcap>0?xcap:null,allowBonus:bonus,
+      suspended:false,expiresAt:Date.now()+hours*3600000,updatedAt:Date.now()};
+    await writeBin(rec);
+    document.getElementById('newGuestResult').style.display='block';
+    document.getElementById('newGuestPwd').textContent=pwd;
+    document.getElementById('newGuestName').textContent=name+' · '+hours+'h · Zones: '+(zones?zones.join(','):'Toutes');
+    setMsg('createMsg','','');
+    loadGuests();
+  }catch(e){setMsg('createMsg','Erreur: '+e.message,'mer');}
+}
+
+async function loadGuests(){
+  var list=document.getElementById('guestList');
+  list.innerHTML='<div style="color:#6f8a99;font-size:11px;font-family:monospace">Chargement...</div>';
+  try{
+    var rec=await readBin();
+    list.innerHTML='';
+    var has=false;
+    Object.entries(rec).forEach(function(kv){
+      var k=kv[0],v=kv[1];
+      if(!k.startsWith('g_')||!v||!v.name)return; has=true;
+      var susp=v.suspended;
+      var zones=v.allowedZones?v.allowedZones.join(','):'Toutes zones';
+      var xcap=v.xpCap?v.xpCap+' XP max':'XP illimite';
+      var bonus=v.allowBonus===false?'Bonus OFF':'Bonus ON';
+      var exp=v.expiresAt?'Exp: '+new Date(v.expiresAt).toLocaleDateString('fr')+'  ':'';
+
+      var div=document.createElement('div');div.className='gcard';
+
+      // Nom + statut
+      var nameDiv=document.createElement('div');nameDiv.className='gname';
+      nameDiv.innerHTML='👤 '+v.name+(susp?' <span style="color:#ff3b5c">(SUSPENDU)</span>':'');
+      div.appendChild(nameDiv);
+
+      // Mot de passe
+      var pwdDiv=document.createElement('div');pwdDiv.className='gpwd';pwdDiv.textContent=v.password;
+      div.appendChild(pwdDiv);
+
+      // Infos
+      var infoDiv=document.createElement('div');infoDiv.className='ginfo';
+      infoDiv.textContent=exp+'XP: '+v.xp+' · '+xcap+' · '+zones+' · '+bonus;
+      div.appendChild(infoDiv);
+
+      // Boutons
+      var btns=document.createElement('div');btns.className='gbtns';
+
+      var bS=document.createElement('button');
+      bS.className='btn '+(susp?'bc':'ba')+' bsm';
+      bS.textContent=susp?'Restaurer':'Suspendre';
+      (function(kk,ss){bS.addEventListener('click',function(){suspGuest(kk,ss);});})(k,susp);
+      btns.appendChild(bS);
+
+      var bZ=document.createElement('button');bZ.className='btn bz bsm';bZ.textContent='Zones';
+      (function(kk,curZ){bZ.addEventListener('click',function(){limZones(kk,curZ);});})(k,v.allowedZones||null);
+      btns.appendChild(bZ);
+
+      var bX=document.createElement('button');bX.className='btn bp bsm';bX.textContent='XP max';
+      (function(kk,curX){bX.addEventListener('click',function(){limXp(kk,curX);});})(k,v.xpCap||0);
+      btns.appendChild(bX);
+
+      var bB=document.createElement('button');bB.className='btn ba bsm';
+      bB.textContent='Bonus '+(v.allowBonus===false?'OFF':'ON');
+      (function(kk,curB){bB.addEventListener('click',function(){togBonus(kk,curB);});})(k,v.allowBonus!==false);
+      btns.appendChild(bB);
+
+      var bD=document.createElement('button');bD.className='btn br bsm';bD.textContent='Supprimer';
+      (function(kk){bD.addEventListener('click',function(){delGuest(kk);});})(k);
+      btns.appendChild(bD);
+
+      div.appendChild(btns);
+      list.appendChild(div);
+    });
+    if(!has)list.innerHTML='<div style="color:#6f8a99;font-size:11px;font-family:monospace">Aucun compte guest</div>';
+  }catch(e){list.innerHTML='<div style="color:#ff3b5c;font-size:11px;font-family:monospace">Erreur: '+e.message+'</div>';}
+}
+
+async function suspGuest(k,cur){
+  try{var rec=await readBin();if(rec[k])rec[k].suspended=!cur;await writeBin(rec);loadGuests();}
+  catch(e){alert('Erreur: '+e.message);}
+}
+async function limZones(k,cur){
+  var inp=prompt('Zones autorisees (virgule, vide=toutes):\npython, reseau, systemes, thm, rootme, elec',(cur||[]).join(','));
+  if(inp===null)return;
+  try{var rec=await readBin();if(rec[k])rec[k].allowedZones=inp.trim()?inp.split(',').map(function(s){return s.trim();}):null;await writeBin(rec);loadGuests();}
+  catch(e){alert('Erreur: '+e.message);}
+}
+async function limXp(k,cur){
+  var inp=prompt('XP maximum (0 = illimite) :', cur||0);
+  if(inp===null)return;
+  var cap=parseInt(inp)||null;
+  try{var rec=await readBin();if(rec[k])rec[k].xpCap=cap&&cap>0?cap:null;await writeBin(rec);loadGuests();}
+  catch(e){alert('Erreur: '+e.message);}
+}
+async function togBonus(k,cur){
+  if(!confirm((cur?'Desactiver':'Activer')+' les quetes bonus ?'))return;
+  try{var rec=await readBin();if(rec[k])rec[k].allowBonus=!cur;await writeBin(rec);loadGuests();}
+  catch(e){alert('Erreur: '+e.message);}
+}
+async function delGuest(k){
+  if(!confirm('Supprimer ce compte guest ?'))return;
+  try{var rec=await readBin();delete rec[k];await writeBin(rec);loadGuests();}
+  catch(e){alert('Erreur: '+e.message);}
+}
+
+
+
+
+
+
+function decoAdmin(){mk='';lss('cq_admin_mk','');document.getElementById('loginCard').style.display='block';document.getElementById('mainPanel').style.display='none';}
+</script>
+</body>
+</html>

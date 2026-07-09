@@ -7,116 +7,214 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#080810;font-family:-apple-system,sans-serif;color:#cfe7ee;padding-bottom:40px}
-.hdr{background:#0d0d1a;border-bottom:1px solid #1c2c3d;padding:16px 18px}
-.logo{font-family:monospace;font-weight:700;font-size:16px;color:#00f0ff}.logo b{color:#ff2ecb}
-.sub{font-size:11px;color:#6f8a99;font-family:monospace;margin-top:2px}
-.card{margin:14px 16px;background:#0d1622;border:1px solid #1c2c3d;border-radius:12px;overflow:hidden}
-.card-title{background:#131d2e;padding:11px 16px;font-family:monospace;font-size:11px;letter-spacing:.08em;display:flex;align-items:center;gap:10px}
-.n{background:#00f0ff;color:#04141a;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0}
-.card-body{padding:14px 16px;font-size:13px;line-height:1.65}
-.card-body b{color:#00f0ff}
-.card-body a{color:#b14eff;text-decoration:none}
-.step{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+.hdr{background:#0d0d1a;border-bottom:1px solid #1c2c3d;padding:14px 16px}
+.logo{font-family:monospace;font-weight:700;font-size:15px;color:#00f0ff}.logo b{color:#ff2ecb}
+.sub{font-size:10px;color:#6f8a99;font-family:monospace;margin-top:2px}
+.card{margin:12px 14px;background:#0d1622;border:1px solid #1c2c3d;border-radius:11px;overflow:hidden}
+.ct{background:#131d2e;padding:10px 14px;font-family:monospace;font-size:10px;letter-spacing:.08em;display:flex;align-items:center;gap:8px}
+.n{background:#00f0ff;color:#04141a;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:10px;flex-shrink:0}
+.cb{padding:14px;font-size:13px;line-height:1.6}
+.cb b{color:#00f0ff}
+.cb a{color:#b14eff}
+.step{display:flex;gap:9px;margin-bottom:10px;align-items:flex-start}
 .sn{background:#b14eff;color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:10px;font-weight:700;flex-shrink:0;margin-top:2px}
-.code{background:#060a10;border:1px solid #1c2c3d;border-radius:7px;padding:10px 12px;font-family:monospace;font-size:11px;color:#27e0a0;margin:8px 0;line-height:1.6;word-break:break-all}
+.code{background:#060a10;border:1px solid #1c2c3d;border-radius:7px;padding:10px 12px;font-family:monospace;font-size:11px;color:#27e0a0;margin:8px 0;line-height:1.6}
 .ph{color:#ff2ecb}
-.warn{background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.25);border-radius:8px;padding:10px 12px;font-size:12px;color:#ffb020;margin:8px 0}
+.warn{background:rgba(255,176,32,.08);border:1px solid rgba(255,176,32,.25);border-radius:8px;padding:10px 12px;font-size:12px;color:#ffb020;margin:8px 0;line-height:1.5}
 .ok{background:rgba(39,224,160,.08);border:1px solid rgba(39,224,160,.25);border-radius:8px;padding:10px 12px;font-size:12px;color:#27e0a0;margin:8px 0}
-.tpl{background:#060a10;border:1px solid #b14eff;border-radius:8px;padding:14px;margin:10px 0;font-family:monospace;font-size:12px;line-height:1.8}
-.tpl .v{color:#00f0ff}.tpl .lbl{color:#6f8a99;font-size:10px;display:block;margin-bottom:2px}
+.tpl{background:#060a10;border:1px solid #b14eff;border-radius:8px;padding:14px;margin:10px 0;font-family:monospace;font-size:11px;line-height:1.8}
+.tpl .v{color:#00f0ff}.tpl .lbl{color:#6f8a99;font-size:9px;display:block;margin-bottom:2px}
 .btn-a{display:block;padding:13px;background:#00f0ff;color:#04141a;border-radius:8px;font-family:monospace;font-size:12px;font-weight:700;text-align:center;text-decoration:none;margin-top:12px}
-.sep{border:none;border-top:1px solid #1c2c3d;margin:14px 0}
+/* SIMULATED SCREENSHOTS */
+.screen{background:#fff;border-radius:10px;padding:14px;margin:12px 0;border:1px solid #ddd}
+.screen .s-title{background:#1a1a2e;color:#fff;padding:8px 12px;border-radius:6px 6px 0 0;font-size:11px;font-family:monospace;margin:-14px -14px 10px;letter-spacing:.05em}
+.screen .s-nav{display:flex;gap:0;background:#f5f5f5;border-bottom:2px solid #eee;margin:-0px -0px 12px;padding:0 8px}
+.screen .s-nav span{padding:8px 12px;font-size:11px;color:#666;cursor:pointer}
+.screen .s-nav span.sel{color:#4a90d9;border-bottom:2px solid #4a90d9;margin-bottom:-2px}
+.screen .s-row{display:flex;align-items:center;gap:10px;padding:8px;background:#f9f9f9;border-radius:6px;margin-bottom:6px;border:1px solid #e8e8e8}
+.screen .s-icon{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.screen .s-label{font-size:12px;color:#333;font-weight:500}
+.screen .s-sub{font-size:10px;color:#999}
+.screen .s-btn{background:#4a90d9;color:#fff;border:none;border-radius:5px;padding:5px 12px;font-size:11px;cursor:pointer;margin-left:auto}
+.screen .s-btn-g{background:#27ae60;color:#fff;border:none;border-radius:5px;padding:5px 12px;font-size:11px}
+.screen .s-input{width:100%;padding:7px;border:1px solid #ddd;border-radius:5px;font-size:12px;margin-bottom:6px}
+.screen .s-field{background:#fff;border:1px solid #ddd;border-radius:5px;padding:7px;font-size:11px;font-family:monospace;margin-bottom:6px;color:#333}
+.screen .s-key{background:#f0f0f0;border:1px solid #ccc;border-radius:4px;padding:6px 10px;font-family:monospace;font-size:11px;color:#333;display:flex;align-items:center;justify-content:space-between}
+.screen .s-copy{background:#4a90d9;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:10px}
+.arrow{text-align:center;font-size:20px;margin:4px 0;color:#00f0ff}
 </style>
 </head>
 <body>
 
 <div class="hdr">
   <div class="logo">CYBER<b>QUEST</b></div>
-  <div class="sub">Tuto EmailJS — Simon reçoit un mail à chaque inscription Guest</div>
+  <div class="sub">Tuto EmailJS — Notifications guest pour Simon</div>
 </div>
 
-<!-- POURQUOI -->
+<!-- INTRO -->
 <div class="card">
-  <div class="card-title"><div class="n">?</div><span style="color:#ffb020">POURQUOI EMAILJS ?</span></div>
-  <div class="card-body">
-    Quand un Guest s'inscrit dans CyberQuest, Simon reçoit automatiquement un email avec :<br>
-    le <b>nom</b> du guest, son <b>mot de passe</b>, la <b>date/heure</b>, et un rappel pour activer JSONBin public si besoin.
-    <div class="ok">✅ Gratuit · 200 emails/mois · Sans backend · Fonctionne depuis iPhone et Quest 2</div>
-    <div class="warn">⚠️ Fonctionne avec n'importe quelle adresse email — pas besoin de Gmail.</div>
+  <div class="ct"><div class="n">?</div><span style="color:#ffb020">POURQUOI ?</span></div>
+  <div class="cb">
+    Dès qu'un Guest s'inscrit dans CyberQuest, Simon reçoit un <b>email automatique</b> avec le nom et le mot de passe du guest.
+    <div class="ok">✅ Gratuit · 200 emails/mois · Fonctionne avec Gmail, Outlook, Free, Orange, Yahoo et tout SMTP</div>
+    <div class="warn">⏱ Durée estimée : 8 minutes la première fois.</div>
   </div>
 </div>
 
 <!-- ETAPE 1 -->
 <div class="card">
-  <div class="card-title"><div class="n">1</div>CRÉER UN COMPTE EMAILJS</div>
-  <div class="card-body">
-    <a class="btn-a" href="https://www.emailjs.com" target="_blank">Ouvrir emailjs.com →</a>
-    <hr class="sep">
-    <div class="step"><div class="sn">1</div><div>Clique <b>Sign Up Free</b> → entre ton adresse email et un mot de passe</div></div>
-    <div class="step"><div class="sn">2</div><div>Confirme l'email reçu → connecte-toi au dashboard</div></div>
-    <div class="warn">Utilise l'adresse email où tu veux recevoir les notifications guests (ton adresse perso suffit).</div>
+  <div class="ct"><div class="n">1</div>CRÉER UN COMPTE EMAILJS</div>
+  <div class="cb">
+    <a class="btn-a" href="https://www.emailjs.com" target="_blank">↗ Ouvrir emailjs.com</a>
+    <div style="height:10px"></div>
+
+    <!-- Simulation page d'accueil EmailJS -->
+    <div class="screen">
+      <div class="s-title">emailjs.com</div>
+      <div style="text-align:center;padding:10px 0">
+        <div style="font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:6px">EmailJS</div>
+        <div style="font-size:11px;color:#666;margin-bottom:12px">Send emails directly from JavaScript</div>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button style="background:#4a90d9;color:#fff;border:none;border-radius:5px;padding:8px 16px;font-size:12px;font-weight:700">Sign Up Free</button>
+          <button style="background:#f5f5f5;color:#333;border:1px solid #ddd;border-radius:5px;padding:8px 16px;font-size:12px">Log In</button>
+        </div>
+      </div>
+    </div>
+    <div class="arrow">↑ Clique "Sign Up Free"</div>
+    <div class="step" style="margin-top:10px"><div class="sn">1</div><div>Entre ton <b>adresse email</b> (Gmail, Outlook, Free, Orange…) et un <b>mot de passe</b></div></div>
+    <div class="step"><div class="sn">2</div><div>Confirme l'email reçu → connecte-toi</div></div>
   </div>
 </div>
 
 <!-- ETAPE 2 -->
 <div class="card">
-  <div class="card-title"><div class="n">2</div>CONNECTER TON ADRESSE EMAIL</div>
-  <div class="card-body">
-    <div class="step"><div class="sn">1</div><div>Dashboard EmailJS → menu gauche → <b>Email Services</b></div></div>
-    <div class="step"><div class="sn">2</div><div>Clique <b>Add New Service</b></div></div>
-    <div class="step"><div class="sn">3</div><div>Choisis ton service email :<br>
-      • <b>Gmail</b> → connexion directe avec ton compte Google<br>
-      • <b>Outlook / Hotmail</b> → même principe<br>
-      • <b>Personal Email (SMTP)</b> → pour Free, Orange, SFR, etc. → entre serveur SMTP + login + mot de passe<br>
-      • <b>Yahoo Mail</b> → connexion directe
-    </div></div>
-    <div class="step"><div class="sn">4</div><div>Donne un nom au service (ex: <b>cyberquest-notif</b>) → <b>Connect Account</b> → autorise l'accès</div></div>
-    <div class="step"><div class="sn">5</div><div>Copie le <b>Service ID</b> affiché</div></div>
-    <div class="code">Exemple : <span class="ph">service_ab12cd34</span></div>
-    <div class="warn">Pour Free (Zimbra) ou autre SMTP :<br>
-      Serveur : <b>smtp.free.fr</b> | Port : <b>587</b> | Ton login Free + mot de passe</div>
+  <div class="ct"><div class="n">2</div>CONNECTER TON EMAIL</div>
+  <div class="cb">
+    <!-- Simulation dashboard EmailJS -->
+    <div class="screen">
+      <div class="s-title">EmailJS — Dashboard</div>
+      <div class="s-nav">
+        <span>Dashboard</span>
+        <span class="sel">Email Services</span>
+        <span>Email Templates</span>
+        <span>Account</span>
+      </div>
+      <div style="text-align:right;margin-bottom:10px">
+        <button class="s-btn">+ Add New Service</button>
+      </div>
+      <div style="font-size:11px;color:#999;text-align:center;padding:10px">No email services yet</div>
+    </div>
+    <div class="arrow">↑ Clique "+ Add New Service"</div>
+
+    <div class="screen" style="margin-top:8px">
+      <div class="s-title">Select Email Service</div>
+      <div class="s-row" style="border:2px solid #4a90d9"><div class="s-icon" style="background:#fff0f0">📧</div><div><div class="s-label">Gmail</div><div class="s-sub">Connect with Google</div></div><button class="s-btn-g">Select</button></div>
+      <div class="s-row"><div class="s-icon" style="background:#f0f4ff">📘</div><div><div class="s-label">Outlook</div><div class="s-sub">Microsoft account</div></div></div>
+      <div class="s-row"><div class="s-icon" style="background:#fff8f0">📮</div><div><div class="s-label">Personal Email (SMTP)</div><div class="s-sub">Free, Orange, Yahoo, SFR…</div></div></div>
+    </div>
+    <div class="arrow">↑ Choisis ton service email</div>
+
+    <div class="warn">
+      <b>Pour Free / Orange / SFR (SMTP) :</b><br>
+      Serveur Free : <code>smtp.free.fr</code> · Port : <code>587</code><br>
+      Serveur Orange : <code>smtp.orange.fr</code> · Port : <code>587</code><br>
+      Login = ton adresse email · Mot de passe = ton mot de passe email
+    </div>
+
+    <div class="screen" style="margin-top:8px">
+      <div class="s-title">Configure Email Service</div>
+      <div style="font-size:11px;color:#666;margin-bottom:8px">Service Name</div>
+      <input class="s-input" value="cyberquest-notif" readonly>
+      <div style="text-align:right">
+        <button class="s-btn">Connect Account →</button>
+      </div>
+      <div style="margin-top:10px;background:#e8f4e8;border-radius:5px;padding:8px;font-size:11px;color:#27ae60">
+        ✅ Connected · Service ID : <b>service_ab12cd34</b>
+      </div>
+    </div>
+    <div class="arrow">↑ Copie le Service ID !</div>
+
+    <div class="code">EMAILJS_SERVICE_ID = '<span class="ph">service_ab12cd34</span>'</div>
   </div>
 </div>
 
 <!-- ETAPE 3 -->
 <div class="card">
-  <div class="card-title"><div class="n">3</div>CRÉER LE TEMPLATE EMAIL</div>
-  <div class="card-body">
-    <div class="step"><div class="sn">1</div><div>Menu gauche → <b>Email Templates</b> → <b>Create New Template</b></div></div>
-    <div class="step"><div class="sn">2</div><div>Remplis <b>exactement</b> comme ci-dessous (les noms entre {{ }} sont importants) :</div></div>
-    <div class="tpl">
-      <span class="lbl">To :</span><span class="v">{{to_email}}</span><br>
-      <span class="lbl">Subject :</span>🔐 CyberQuest — Guest : <span class="v">{{guest_name}}</span><br><br>
-      <span class="lbl">Body :</span>
-      Bonjour Simon,<br><br>
-      Nouvelle action Guest sur CyberQuest.<br><br>
-      Action : <span class="v">{{action}}</span><br>
-      Heure : <span class="v">{{time}}</span><br><br>
-      Nom : <span class="v">{{guest_name}}</span><br>
-      Mot de passe : <span class="v">{{guest_pwd}}</span><br><br>
-      <span class="v">{{message}}</span><br><br>
-      — CyberQuest
+  <div class="ct"><div class="n">3</div>CRÉER LE TEMPLATE EMAIL</div>
+  <div class="cb">
+    <div class="screen">
+      <div class="s-title">EmailJS — Email Templates</div>
+      <div class="s-nav"><span>Dashboard</span><span>Email Services</span><span class="sel">Email Templates</span></div>
+      <div style="text-align:right;margin-bottom:10px"><button class="s-btn">+ Create New Template</button></div>
     </div>
-    <div class="step"><div class="sn">3</div><div>Clique <b>Save</b> → copie le <b>Template ID</b></div></div>
-    <div class="code">Exemple : <span class="ph">template_xy56zw78</span></div>
+    <div class="arrow">↑ Clique "+ Create New Template"</div>
+
+    <div class="screen" style="margin-top:8px">
+      <div class="s-title">Edit Template</div>
+      <div style="font-size:10px;color:#999;margin-bottom:3px">To Email</div>
+      <div class="s-field" style="color:#4a90d9">{{to_email}}</div>
+      <div style="font-size:10px;color:#999;margin-bottom:3px">Subject</div>
+      <div class="s-field">🔐 CyberQuest — Guest : {{guest_name}}</div>
+      <div style="font-size:10px;color:#999;margin-bottom:3px">Body</div>
+      <div class="s-field" style="min-height:80px;white-space:pre-line;line-height:1.6">Bonjour Simon,
+
+Action : <span style="color:#4a90d9">{{action}}</span>
+Heure : <span style="color:#4a90d9">{{time}}</span>
+
+Nom : <span style="color:#4a90d9">{{guest_name}}</span>
+Mot de passe : <span style="color:#e74c3c">{{guest_pwd}}</span>
+
+<span style="color:#27ae60">{{message}}</span>
+
+— CyberQuest</div>
+      <div style="text-align:right;margin-top:8px"><button class="s-btn-g">Save</button></div>
+      <div style="margin-top:8px;background:#e8f4e8;border-radius:5px;padding:8px;font-size:11px;color:#27ae60">
+        ✅ Template saved · ID : <b>template_xy56zw78</b>
+      </div>
+    </div>
+    <div class="arrow">↑ Copie le Template ID !</div>
+
+    <div class="code">EMAILJS_TEMPLATE_ID = '<span class="ph">template_xy56zw78</span>'</div>
+
+    <div class="warn">⚠️ Les variables entre {{ }} doivent être <b>exactement</b> comme indiqué. Copie-colle directement.</div>
+    <div class="tpl">
+      <span class="lbl">Variables à utiliser dans ton template :</span>
+      <span class="v">{{to_email}}</span> — adresse de Simon<br>
+      <span class="v">{{guest_name}}</span> — nom du guest<br>
+      <span class="v">{{guest_pwd}}</span> — mot de passe choisi<br>
+      <span class="v">{{action}}</span> — "inscription" ou "connexion"<br>
+      <span class="v">{{time}}</span> — date et heure<br>
+      <span class="v">{{message}}</span> — message complet avec instructions
+    </div>
   </div>
 </div>
 
 <!-- ETAPE 4 -->
 <div class="card">
-  <div class="card-title"><div class="n">4</div>RÉCUPÉRER LA PUBLIC KEY</div>
-  <div class="card-body">
-    <div class="step"><div class="sn">1</div><div>Menu gauche → <b>Account</b> → onglet <b>General</b></div></div>
-    <div class="step"><div class="sn">2</div><div>Section <b>Public Key</b> → copie la valeur</div></div>
-    <div class="code">Exemple : <span class="ph">aBcDeFgHiJkLmNoP12</span></div>
+  <div class="ct"><div class="n">4</div>RÉCUPÉRER LA PUBLIC KEY</div>
+  <div class="cb">
+    <div class="screen">
+      <div class="s-title">EmailJS — Account</div>
+      <div class="s-nav"><span>Dashboard</span><span>Email Services</span><span>Email Templates</span><span class="sel">Account</span></div>
+      <div style="background:#f9f9f9;border-radius:6px;padding:10px;margin-top:6px">
+        <div style="font-size:11px;color:#666;margin-bottom:6px;font-weight:600">PUBLIC KEY</div>
+        <div class="s-key">
+          <span>aBcDeFgHiJkLmNoP12</span>
+          <button class="s-copy">Copy</button>
+        </div>
+        <div style="font-size:10px;color:#999;margin-top:4px">Use this key to initialize EmailJS SDK</div>
+      </div>
+    </div>
+    <div class="arrow">↑ Menu Account → onglet General → copie la Public Key</div>
+    <div class="code">EMAILJS_PUBLIC_KEY = '<span class="ph">aBcDeFgHiJkLmNoP12</span>'</div>
   </div>
 </div>
 
 <!-- ETAPE 5 -->
 <div class="card">
-  <div class="card-title"><div class="n">5</div>COLLER LES VALEURS DANS index.html</div>
-  <div class="card-body">
-    Dans <b>index.html</b> sur GitHub, cherche et remplace ces 4 lignes :
+  <div class="ct"><div class="n">5</div>COLLER DANS index.html</div>
+  <div class="cb">
+    Dans <b>index.html</b> sur GitHub, trouve et remplace ces 4 lignes :
     <div class="code">
 var EMAILJS_PUBLIC_KEY  = '<span class="ph">aBcDeFgHiJkLmNoP12</span>';<br>
 var EMAILJS_SERVICE_ID  = '<span class="ph">service_ab12cd34</span>';<br>
@@ -124,39 +222,19 @@ var EMAILJS_TEMPLATE_ID = '<span class="ph">template_xy56zw78</span>';<br>
 var SIMON_EMAIL         = '<span class="ph">ton@adresse.fr</span>';
     </div>
     <div class="ok">✅ C'est tout ! Chaque inscription Guest envoie un email automatiquement à Simon.</div>
-    <div class="warn">SIMON_EMAIL = l'adresse où Simon veut recevoir les mails (peut être différente de celle du compte EmailJS).</div>
+    <div class="warn">SIMON_EMAIL peut être différent de l'adresse du compte EmailJS — c'est l'adresse de réception.</div>
   </div>
 </div>
 
 <!-- ETAPE 6 -->
 <div class="card">
-  <div class="card-title"><div class="n">6</div>TESTER</div>
-  <div class="card-body">
-    <div class="step"><div class="sn">1</div><div>Ouvre CyberQuest iPhone → chip <b>Guest</b> → onglet <b>Créer mon compte</b></div></div>
+  <div class="ct"><div class="n">6</div>TESTER</div>
+  <div class="cb">
+    <div class="step"><div class="sn">1</div><div>Ouvre CyberQuest sur iPhone → chip <b>Guest</b> → <b>Créer mon compte</b></div></div>
     <div class="step"><div class="sn">2</div><div>Entre un nom + mot de passe → valide</div></div>
-    <div class="step"><div class="sn">3</div><div>Simon doit recevoir l'email en moins de 30 secondes</div></div>
-    <div class="step"><div class="sn">4</div><div>Si rien → vérifie les <b>spams</b> + que les 4 valeurs sont collées correctement</div></div>
-    <hr class="sep">
-    <div class="warn">
-      Limite gratuite : <b>200 emails/mois</b>.<br>
-      Si dépassé, les notifications s'arrêtent silencieusement — l'app continue de fonctionner normalement.
-    </div>
-  </div>
-</div>
-
-<!-- ADMIN -->
-<div class="card">
-  <div class="card-title"><div class="n">+</div><span style="color:#b14eff">GÉRER LES GUESTS (panel Admin)</span></div>
-  <div class="card-body">
-    Une fois un Guest inscrit, Simon ouvre le <b>panel Admin</b> (bouton Gérer) pour :
-    <hr class="sep">
-    <div class="step"><div class="sn">→</div><div><b>Suspendre / Restaurer</b> — bloque la connexion du guest sans supprimer son compte</div></div>
-    <div class="step"><div class="sn">→</div><div><b>Zones</b> — limite les zones accessibles (ex: uniquement Python Dungeon et Network Fortress)</div></div>
-    <div class="step"><div class="sn">→</div><div><b>XP max</b> — plafonne l'XP gagnable (ex: 300 XP max)</div></div>
-    <div class="step"><div class="sn">→</div><div><b>Bonus ON/OFF</b> — active ou désactive les quêtes bonus et scénarios pour ce guest</div></div>
-    <div class="step"><div class="sn">→</div><div><b>Supprimer</b> — supprime définitivement le compte</div></div>
-    <hr class="sep">
-    <div class="ok">Le mot de passe choisi par le Guest est toujours visible dans le panel Admin.</div>
+    <div class="step"><div class="sn">3</div><div>Simon doit recevoir l'email en moins de <b>30 secondes</b></div></div>
+    <div class="step"><div class="sn">4</div><div>Pas d'email reçu ? → Vérifie les <b>spams</b> et que les 4 valeurs sont bien collées</div></div>
+    <div class="warn">Limite gratuite : <b>200 emails/mois</b>. Au-delà, les notifications s'arrêtent silencieusement mais l'app continue.</div>
   </div>
 </div>
 
