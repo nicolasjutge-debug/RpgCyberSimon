@@ -73,6 +73,24 @@
 .sn{background:#00f0ff;color:#04141a;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:monospace;font-size:10px;font-weight:700;flex-shrink:0}
 .stx{font-size:11px;color:#cfe7ee;line-height:1.4}.stx b{color:#00f0ff}
 .rb{width:100%;padding:10px;background:transparent;color:#6f8a99;border:1px solid #1c2c3d;border-radius:7px;font-family:monospace;font-size:11px;cursor:pointer;margin-top:8px}
+
+/* Toggle Classique↔VR */
+#vrToggleBar{
+  position:absolute;bottom:48px;left:50%;transform:translateX(-50%);
+  z-index:20;display:none;align-items:center;gap:10px;
+  background:rgba(6,10,16,.85);border:1px solid #1c2c3d;
+  border-radius:30px;padding:8px 18px;pointer-events:auto;
+}
+#vrToggleBar .vt-label{font-family:monospace;font-size:10px;color:#6f8a99;letter-spacing:.05em}
+#vrToggleBar .vt-btn{
+  font-family:monospace;font-size:11px;font-weight:700;
+  padding:8px 16px;border-radius:20px;border:none;cursor:pointer;
+  transition:.2s;
+}
+#vrToggleBar .vt-btn.classic{background:rgba(255,255,255,.08);color:#cfe7ee;}
+#vrToggleBar .vt-btn.vr-active{background:#00f0ff;color:#04141a;}
+#vrToggleBar .vt-btn:hover{opacity:.85;}
+
 </style>
 </head>
 <body>
@@ -516,7 +534,19 @@ function initApp() {
 
     // VR
     var vrBtn=document.getElementById('vrBtn');
-    if(!navigator.xr){vrBtn.disabled=true;}else{navigator.xr.isSessionSupported('immersive-vr').then(function(s){if(!s)vrBtn.disabled=true;});}
+    var vrToggleBar=document.getElementById('vrToggleBar');
+    var classicModeBtn=document.getElementById('classicModeBtn');
+    var vrModeBtn=document.getElementById('vrModeBtn');
+
+    // Afficher le toggle uniquement si WebXR disponible
+    if(!navigator.xr){
+      vrBtn.disabled=true;
+    }else{
+      navigator.xr.isSessionSupported('immersive-vr').then(function(s){
+        if(!s){vrBtn.disabled=true;return;}
+        // WebXR supporté — afficher le toggle bar
+        if(vrToggleBar)vrToggleBar.style.display='flex';
+      });}
     var xrS=null;
     vrBtn.addEventListener('click',async function(){if(xrS){xrS.end();return;}try{var s=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor']});xrS=s;rdr.xr.setSession(s);vrBtn.textContent='Stop';s.addEventListener('end',function(){xrS=null;vrBtn.textContent='VR';});}catch(e){st.textContent='VR: '+e.message;}});
 
@@ -541,5 +571,13 @@ function initApp() {
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
 
 </script>
+
+<!-- Toggle Classique ↔ VR — visible Quest 2 uniquement si WebXR dispo -->
+<div id="vrToggleBar">
+  <span class="vt-label">MODE</span>
+  <button class="vt-btn classic" id="classicModeBtn">Classique</button>
+  <button class="vt-btn vr-active" id="vrModeBtn">🥽 VR</button>
+</div>
+
 </body>
 </html>
