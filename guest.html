@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CyberQuest — Espace Guest</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#080810;font-family:-apple-system,sans-serif;color:#cfe7ee}
+/* HEADER */
+.hdr{background:#0d0d1a;border-bottom:1px solid #1c2c3d;padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:monospace;font-weight:700;font-size:16px;color:#00f0ff}.logo b{color:#ff2ecb}
+.logo-sub{font-size:10px;color:#6f8a99;font-family:monospace;margin-top:2px}
+.xp-chip{background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.3);border-radius:20px;padding:4px 12px;font-family:monospace;font-size:12px;color:#00f0ff;display:none}
+/* CARDS */
+.card{background:#0d1622;border:1px solid #1c2c3d;border-radius:14px;margin:16px;overflow:hidden}
+.card-title{background:#131d2e;padding:12px 16px;font-family:monospace;font-size:11px;letter-spacing:.08em;color:#6f8a99}
+.card-body{padding:16px}
+/* FORMS */
+label{display:block;font-family:monospace;font-size:10px;color:#6f8a99;margin-bottom:5px;margin-top:12px}
+input,select{width:100%;padding:12px;background:#060a10;border:1px solid #1c2c3d;border-radius:8px;color:#fff;font-size:14px;font-family:monospace}
+.btn{width:100%;padding:13px;border:none;border-radius:10px;font-family:monospace;font-size:13px;font-weight:700;cursor:pointer;margin-top:12px}
+.btn-cyan{background:#00f0ff;color:#04141a}
+.btn-purple{background:#b14eff;color:#fff}
+.btn-outline{background:transparent;border:1px solid #1c2c3d;color:#6f8a99;margin-top:8px}
+.msg{font-family:monospace;font-size:11px;margin-top:8px;padding:8px;border-radius:6px;min-height:14px}
+.msg-ok{color:#27e0a0;background:rgba(39,224,160,.08);border:1px solid rgba(39,224,160,.2)}
+.msg-err{color:#ff3b5c;background:rgba(255,59,92,.08);border:1px solid rgba(255,59,92,.2)}
+.msg-info{color:#00f0ff;background:rgba(0,240,255,.06);border:1px solid rgba(0,240,255,.15)}
+/* TABS LOGIN */
+.tabs{display:flex;border:1px solid #1c2c3d;border-radius:8px;overflow:hidden;margin-bottom:16px}
+.tab{flex:1;padding:10px;text-align:center;font-family:monospace;font-size:11px;color:#6f8a99;cursor:pointer;background:transparent;border:none}
+.tab.sel{background:#1c2c3d;color:#00f0ff}
+.tp{display:none}.tp.show{display:block}
+/* ZONES */
+.zone-item{background:#060a10;border:1px solid #1c2c3d;border-radius:10px;padding:14px;margin-bottom:10px;cursor:pointer;transition:.15s}
+.zone-item:hover{border-color:#00f0ff}
+.zone-icon{font-size:22px;margin-bottom:6px}
+.zone-name{font-family:monospace;font-size:13px;font-weight:700}
+.zone-desc{font-size:11px;color:#6f8a99;margin-top:3px}
+.zone-prog{font-size:11px;margin-top:8px;font-family:monospace}
+.weeks-list{display:none}
+.week-item{padding:11px 14px;border-bottom:1px solid #1c2c3d;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:space-between}
+.week-item:hover{background:rgba(255,255,255,.03)}
+.week-item:last-child{border-bottom:none}
+.week-ok{color:#27e0a0}
+/* QCM */
+.qcm-body{padding:16px}
+.qcm-q{font-size:15px;line-height:1.5;color:#e8f4f8;margin-bottom:16px}
+.opt{width:100%;text-align:left;padding:13px 15px;margin-bottom:8px;background:rgba(255,255,255,.03);border:1px solid #1c2c3d;border-radius:9px;color:#cfe7ee;font-size:13px;cursor:pointer;font-family:-apple-system,sans-serif}
+.opt:hover{border-color:#00f0ff;background:rgba(0,240,255,.04)}
+.opt.correct{border-color:#27e0a0;background:rgba(39,224,160,.1);color:#aef6da}
+.opt.wrong{border-color:#ff3b5c;background:rgba(255,59,92,.1);color:#ffc2cd}
+.cours-body{padding:16px;font-size:14px;line-height:1.6;color:#e8f4f8}
+/* BONUS */
+.bq-item{padding:12px 14px;border-bottom:1px solid #1c2c3d;display:flex;align-items:center;justify-content:space-between}
+.bq-item:last-child{border-bottom:none}
+.bq-done{color:#27e0a0}.bq-todo{color:#6f8a99}
+/* PROFILE BANNER */
+.profile-banner{background:#0d1622;border:1px solid #b14eff;border-radius:12px;margin:16px;padding:14px;display:none}
+.pb-top{display:flex;align-items:center;gap:12px}
+.pb-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#b14eff,#00f0ff);display:flex;align-items:center;justify-content:center;font-family:monospace;font-weight:700;font-size:16px;color:#060a10}
+.pb-name{font-family:monospace;font-size:14px;font-weight:700}
+.pb-type{font-size:11px;color:#b14eff;margin-top:2px}
+.pb-xp{font-family:monospace;font-size:13px;color:#00f0ff;margin-top:6px}
+/* MENU NAV */
+.nav-bar{position:fixed;bottom:0;left:0;right:0;background:#0d1622;border-top:1px solid #1c2c3d;display:none;justify-content:space-around;padding:10px 0 20px;z-index:50}
+.nav-item{flex:1;text-align:center;font-family:monospace;font-size:9px;color:#6f8a99;cursor:pointer;padding:6px}
+.nav-item.sel{color:#00f0ff}
+.nav-icon{font-size:18px;display:block;margin-bottom:2px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="logo">CYBER<b>QUEST</b></div>
+    <div class="logo-sub">Espace Guest</div>
+  </div>
+  <div class="xp-chip" id="xpChip">0 XP</div>
+</div>
+
+<!-- ECRAN LOGIN -->
+<div id="loginScreen">
+  <div class="card">
+    <div class="card-title">CONNEXION / INSCRIPTION</div>
+    <div class="card-body">
+      <div class="tabs">
+        <button class="tab sel" data-t="login" id="tab-login">J'ai deja un compte</button>
+        <button class="tab" data-t="register" id="tab-register">Creer mon compte</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div class="tp show" id="tp-login">
+        <label>Ton nom</label>
+        <input type="text" id="loginName" placeholder="ex: Jean" autocomplete="off">
+        <label>Ton mot de passe</label>
+        <input type="password" id="loginPwd" placeholder="••••••" autocomplete="off">
+        <button class="btn btn-cyan" onclick="doLogin()">SE CONNECTER</button>
+      </div>
+
+      <!-- REGISTER -->
+      <div class="tp" id="tp-register">
+        <div class="msg msg-info" style="margin-bottom:12px">Cree ton compte en 30 secondes. Simon verra ton nom et peut gerer ton acces.</div>
+        <label>Choisis ton nom</label>
+        <input type="text" id="regName" placeholder="ex: Jean, Alice..." autocomplete="off" maxlength="20">
+        <label>Choisis ton mot de passe</label>
+        <input type="password" id="regPwd" placeholder="6 caracteres minimum" autocomplete="off">
+        <label>Confirme ton mot de passe</label>
+        <input type="password" id="regPwd2" placeholder="Meme mot de passe" autocomplete="off">
+        <button class="btn btn-purple" onclick="doRegister()">CREER MON COMPTE</button>
+      </div>
+
+      <div class="msg" id="loginMsg"></div>
+    </div>
+  </div>
+  <div style="text-align:center;font-size:11px;color:#3a5060;font-family:monospace;margin:8px 16px">
+    Progression locale uniquement — non visible dans le classement principal
+  </div>
+</div>
+
+<!-- ECRAN APP (masque jusqu'a connexion) -->
+<div id="appScreen" style="display:none;padding-bottom:70px">
+
+  <div class="profile-banner" id="profileBanner">
+    <div class="pb-top">
+      <div class="pb-avatar" id="pbAvatar">??</div>
+      <div><div class="pb-name" id="pbName">Guest</div><div class="pb-type">Compte Guest · session locale</div></div>
+    </div>
+    <div class="pb-xp" id="pbXp">0 XP</div>
+  </div>
+
+  <!-- ZONES -->
+  <div id="zonesScreen">
+    <div class="card">
+      <div class="card-title">CHOISIR UNE ZONE</div>
+      <div class="card-body" id="zonesList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">QUETES BONUS</div>
+      <div id="bqList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">SCENARIOS DU SOIR</div>
+      <div id="scList"></div>
+    </div>
+  </div>
+
+  <!-- SEMAINES -->
+  <div id="weeksScreen" style="display:none">
+    <div class="card" id="weeksCard">
+      <div class="card-title" id="weeksTitle">SEMAINES</div>
+      <div id="weeksList"></div>
+    </div>
+    <div style="margin:0 16px"><button class="btn btn-outline" onclick="showZones()">← Retour aux zones</button></div>
+  </div>
+
+  <!-- COURS -->
+  <div id="coursScreen" style="display:none">
+    <div class="card">
+      <div class="card-title" id="coursTitle">COURS</div>
+      <div class="cours-body" id="coursBody">Generation en cours...</div>
+    </div>
+    <div style="margin:0 16px;display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-cyan" id="goQcmBtn" onclick="showQcm()">COURS LU — GENERER LE QCM IA</button>
+      <button class="btn btn-outline" id="backToWeeksBtn">← Retour</button>
+    </div>
+  </div>
+
+  <!-- QCM -->
+  <div id="qcmScreen" style="display:none">
+    <div class="card">
+      <div class="card-title" id="qcmTitle">QCM</div>
+      <div class="qcm-body">
+        <div class="qcm-q" id="qcmQ">Chargement...</div>
+        <div id="qcmOpts"></div>
+        <div class="msg" id="qcmMsg"></div>
+      </div>
+    </div>
+    <div style="margin:0 16px">
+      <button class="btn btn-outline" id="backToCoursBtn">← Retour au cours</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- NAV BAR -->
+<div class="nav-bar" id="navBar">
+  <div class="nav-item sel" onclick="showZones()"><span class="nav-icon">🏰</span>Zones</div>
+  <div class="nav-item" onclick="showBQ()"><span class="nav-icon">🏆</span>Quetes</div>
+  <div class="nav-item" onclick="showScenarios()"><span class="nav-icon">🌙</span>Soirees</div>
+  <div class="nav-item" onclick="deconnect()"><span class="nav-icon">👤</span>Profil</div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────
+// CONFIG — Simon doit remplacer <CLE_ACCES_GUEST> par son
+// X-Access-Key JSONBin (lecture+ecriture, PAS la Master Key)
+// jsonbin.io → API Keys → Create Access Key → CYBERQUEST
+// ─────────────────────────────────────────────────────
+var BIN_ID = '6a42d25af5f4af5e2943be8f';
+var ACCESS_KEY = '<CLE_ACCES_GUEST>'; // Remplacer ici
+var MODEL = 'llama-3.3-70b-versatile';
+var ZONES = [{"id":"python","name":"PYTHON DUNGEON","icon":"🐍","color":"#00f5ff","desc":"Scripting, réseau, crypto · S1-S8","weeks":[{"n":1,"title":"Variables et types","sub":"Bases du langage","topics":["str, int, float, bool, list, dict, tuple","Opérateurs arithmétiques et comparaison","f-strings et conversion de types","Input utilisateur"]},{"n":2,"title":"Conditions et boucles","sub":"Contrôle du flux","topics":["if / elif / else","Boucles for et range()","Boucle while et break/continue","Opérateurs logiques"]},{"n":3,"title":"Fonctions et modules","sub":"Organiser son code","topics":["def, paramètres, return","Valeurs par défaut","import os, sys, pathlib","Créer ses propres modules"]},{"n":4,"title":"Fichiers et exceptions","sub":"Lire, écrire, gérer les erreurs","topics":["open(), read(), write()","Modes r, w, a","try / except / finally","raise pour lever des exceptions"]},{"n":5,"title":"Sockets réseau","sub":"TCP, UDP et scanner de ports","topics":["socket.AF_INET, SOCK_STREAM","Client TCP et timeout","Scanner de ports avec connect_ex()","Récupérer les bannières"]},{"n":6,"title":"Cryptographie","sub":"hashlib, base64, secrets","topics":["base64 : encoder/décoder","hashlib : MD5, SHA1, SHA256","Module secrets pour tokens","Attaque dictionnaire sur MD5"]},{"n":7,"title":"Requests et scraping","sub":"HTTP, APIs REST, BeautifulSoup","topics":["requests : GET, POST, headers","Analyser les réponses JSON","BeautifulSoup pour parser HTML","User-Agent pour simuler un navigateur"]},{"n":8,"title":"Projet Network Scanner","sub":"Assembler toutes les compétences","topics":["Architecture en modules séparés","Port scanner multi-threadé","Grab de bannières des services","Rapport HTML auto-généré","GitHub avec README et docstrings"]}]},{"id":"reseau","name":"NETWORK FORTRESS","icon":"🌐","color":"#00b4d8","desc":"TCP/IP, Cisco, Wireshark, VLAN · S5-S16","weeks":[{"n":1,"title":"Modèle OSI","sub":"Les 7 couches du réseau","topics":["7 couches OSI : rôle et protocoles","Encapsulation et désencapsulation","Modèle TCP/IP 4 couches vs OSI","Mémoriser les couches"]},{"n":2,"title":"Adressage IPv4","sub":"Sous-réseaux et CIDR","topics":["Adresse IP : 4 octets, 32 bits","Masque CIDR /24","Plages privées RFC 1918","Calculer réseau, broadcast, hôtes"]},{"n":3,"title":"TCP et handshake","sub":"Protocole de transport fiable","topics":["TCP vs UDP : garanties et usages","SYN, SYN-ACK, ACK","Numéros de séquence","Fermeture FIN, FIN-ACK, ACK"]},{"n":4,"title":"Wireshark","sub":"Analyser le trafic réseau","topics":["Interface Wireshark : capture en temps réel","Filtres : ip.addr, tcp.port, http, dns","Analyser un échange HTTP et DNS","Détecter un scan nmap dans une capture"]},{"n":5,"title":"DNS et DHCP","sub":"Infrastructure réseau de base","topics":["DNS : types A, AAAA, MX, CNAME, TXT","Chaîne de résolution DNS récursive","DHCP : DORA (Discover, Offer, Request, ACK)","dig et nslookup pour interroger le DNS"]},{"n":6,"title":"Cisco IOS","sub":"CLI switch et routeur","topics":["Modes IOS : User, Privileged, Config","show version, show interfaces, show ip route","Configurer une interface et no shutdown","copy running-config startup-config"]},{"n":7,"title":"VLANs","sub":"Segmentation logique","topics":["VLAN : isoler des groupes sans câble","Créer et nommer des VLANs en IOS","Ports access (1 VLAN) vs trunk (multi)","Standard 802.1Q et tagging"]},{"n":8,"title":"ACL et sécurité réseau","sub":"Filtrer et contrôler le trafic","topics":["ACL standard vs étendue sur Cisco","access-list 101 permit/deny","Appliquer une ACL sur une interface","Détecter anomalies avec Wireshark"]}]},{"id":"systemes","name":"LINUX TEMPLE","icon":"💻","color":"#a855f7","desc":"Linux, Kali, Windows Server, VMs · S3-S18","weeks":[{"n":1,"title":"Linux navigation","sub":"Arborescence et commandes de base","topics":["Arborescence Linux : /, /etc, /home, /var","pwd, ls -la, cd, mkdir, rmdir","cp, mv, rm, touch, cat, less","find, grep, locate"]},{"n":2,"title":"Permissions Linux","sub":"Droits et sécurité fichiers","topics":["Notation rwx et octale (chmod 755)","chmod : modifier les droits","chown et chgrp : changer propriétaire","SUID, SGID, Sticky Bit"]},{"n":3,"title":"Bash scripting","sub":"Automatiser avec des scripts","topics":["Variables, $1 $2 $@ (arguments)","Conditions if/then/fi","Boucles for/while/until","Fonctions et redirections"]},{"n":4,"title":"VirtualBox et VMs","sub":"Créer son lab de sécurité","topics":["Créer une VM Ubuntu et Kali Linux","Modes réseau : NAT, Bridge, Host-Only, Internal","Snapshots pour sauvegarder l'état","Réseau Internal pour isoler le lab"]},{"n":5,"title":"Kali Linux","sub":"Outils offensifs essentiels","topics":["Distribution Kali : 600+ outils","nmap, netcat, John the Ripper, Hydra","Gobuster pour énumérer les répertoires web","Wordlists : rockyou.txt"]},{"n":6,"title":"Windows Server","sub":"Active Directory et administration","topics":["Active Directory : domaine, OU, utilisateurs","Créer et gérer des utilisateurs AD","GPO (Group Policy Objects)","PowerShell : Get-ADUser, Get-Process"]},{"n":7,"title":"Logs et forensics","sub":"Analyser les traces d'activité","topics":["Logs Linux : /var/log/auth.log, syslog","Détecter un brute-force SSH","Windows Event Viewer : Security, System","Lynis audit de sécurité Linux"]},{"n":8,"title":"Lab pentest complet","sub":"Infrastructure de test intégrée","topics":["Lab : Kali + Ubuntu cible + Windows","Réseau Internal VirtualBox isolé","Documenter l'archi avec draw.io","Premier test d'intrusion guidé"]}]},{"id":"thm","name":"TRYHACKME ARENA","icon":"🔐","color":"#ff3b3b","desc":"OSINT, Web, Exploit, CTF · S9-S24","weeks":[{"n":1,"title":"OSINT et reconnaissance","sub":"Collecte passive d'informations","topics":["OSINT : sources publiques légalement accessibles","Google Dorking : site:, filetype:, intitle:","Shodan : inventorier les appareils exposés","theHarvester, WHOIS, Subfinder"]},{"n":2,"title":"Nmap avancé","sub":"Reconnaissance active","topics":["Options : -sV, -sS, -sU, -A, -p-","NSE (Nmap Scripting Engine) --script","Détection d'OS avec -O","Contourner les firewalls : -f, --source-port"]},{"n":3,"title":"Burp Suite","sub":"Proxy d'interception web","topics":["Configurer Burp comme proxy (127.0.0.1:8080)","Intercepter et modifier des requêtes HTTP","Repeater : rejouer et modifier","Intruder : attaques par dictionnaire"]},{"n":4,"title":"SQL Injection","sub":"Exploiter les bases de données","topics":["Injection SQL : concaténation non sécurisée","Bypass authentification OR 1=1","UNION SELECT pour exfiltrer des données","sqlmap pour automatiser la détection"]},{"n":5,"title":"XSS","sub":"Cross-Site Scripting","topics":["XSS réfléchi vs stocké vs DOM-based","Payloads basiques et bypass de filtres","Vol de cookies de session","Protection : htmlspecialchars, CSP headers"]},{"n":6,"title":"LFI et File Upload","sub":"Inclusions et uploads malveillants","topics":["LFI : lire des fichiers serveur","Traversée de répertoires ../../../","File Upload Bypass : extension, MIME","Gobuster pour découvrir les répertoires"]},{"n":7,"title":"Metasploit","sub":"Framework d'exploitation","topics":["Architecture : exploit, payload, auxiliary","msfconsole : search, use, show options, run","msfvenom : générer des payloads","Meterpreter : shell interactif"]},{"n":8,"title":"Privilege Escalation Linux","sub":"Obtenir les droits root","topics":["whoami, id, sudo -l, uname -a","SUID dangereux : find / -perm -4000","Cron jobs writables","LinPEAS pour automatiser l'énumération"]},{"n":9,"title":"Privilege Escalation Windows","sub":"Escalade sur Windows","topics":["whoami /priv, whoami /groups, systeminfo","Services mal configurés","AlwaysInstallElevated","WinPEAS pour automatiser"]},{"n":10,"title":"CTF Machines complètes","sub":"Méthodologie de bout en bout","topics":["Recon, Enum, Exploit, PrivEsc, Flag","Identifier le vecteur d'entrée","Obtenir un shell et le stabiliser","Write-up pendant la résolution"]},{"n":11,"title":"JWT et sessions web","sub":"Sécurité des tokens d'authentification","topics":["JWT structure : header.payload.signature","Attaque alg:none","Faible secret : cracker avec hashcat","Cookies : httpOnly, Secure, SameSite"]},{"n":12,"title":"HackTheBox Easy machines","sub":"Niveau supérieur","topics":["Différences THM vs HackTheBox","Enumération SMB et FTP anonyme","Exploitation de services mal configurés","Write-ups sur GitHub Pages"]}]},{"id":"rootme","name":"ROOTME CITADEL","icon":"🏴","color":"#39ff14","desc":"Crypto, Forensics, Pwn, CTF · S17-S36","weeks":[{"n":1,"title":"Encodages classiques","sub":"Base64, Hex, ROT13","topics":["Base64 : encoder/décoder, identifier le padding","Hexadécimal : octets vers notation 0-9 A-F","ROT13 : décalage 13, appliquer 2x = original","CyberChef pour automatiser"]},{"n":2,"title":"Chiffres classiques","sub":"César, Vigenère, substitution","topics":["César : décalage de 1 à 25, brute-force trivial","Vigenère : clé répétée, attaque Kasiski","Substitution monoalphabétique","Analyse de fréquences : e, a, s, i, t"]},{"n":3,"title":"RSA et hashes","sub":"Cryptographie asymétrique","topics":["RSA : principe p*q=n, clé publique et privée","Factoriser n si p et q sont proches","Hashes : MD5 cassé, SHA1 déprécié, SHA256 standard","Attaques : rainbow tables, dictionnaire, hashcat"]},{"n":4,"title":"Stéganographie","sub":"Cacher des données dans des médias","topics":["LSB (Least Significant Bit) dans les images","steghide pour JPEG et WAV","zsteg pour analyser les plans de bits","ExifTool pour les métadonnées EXIF"]},{"n":5,"title":"Forensics fichiers","sub":"Analyser des fichiers suspects","topics":["Magic bytes : identifier le vrai type de fichier","binwalk : détecter et extraire des fichiers imbriqués","foremost : récupérer depuis image disque","tshark : analyser captures pcap en CLI"]},{"n":6,"title":"Forensics mémoire","sub":"Volatility 3 et dumps RAM","topics":["Volatility 3 : analyser dumps Windows/Linux","Plugins : windows.pslist, windows.netscan","Extraire processus, connexions, hashs NTLM","Créer un dump depuis VirtualBox"]},{"n":7,"title":"pwntools et buffer overflow","sub":"Exploitation de binaires","topics":["pwntools : bibliothèque Python pour le pwn","Chercher l'offset du buffer overflow","ret2win : écraser l'adresse de retour","checksec : vérifier les protections d'un binaire"]},{"n":8,"title":"CTF compétitif","sub":"Compétitions et write-ups","topics":["CTFtime.org : agenda mondial des CTF","Catégories : web, crypto, forensics, pwn, reverse","Organiser une équipe et les rôles","Structure d'un write-up professionnel"]}]},{"id":"elec","name":"ELECTRONICS LAB","icon":"🔌","color":"#00979d","desc":"Arduino, Raspberry Pi, IoT · S1-S52","weeks":[{"n":1,"title":"Arduino premier sketch","sub":"LED, Serial, bases","topics":["Structure : setup() 1x, loop() en boucle","pinMode, digitalWrite, digitalRead, analogRead","Moniteur série : Serial.begin() et println()","Types en C++ Arduino : int, float, bool, String"]},{"n":2,"title":"Capteurs et actionneurs","sub":"DHT11, ultrason, servo, LCD","topics":["DHT11 : mesurer température et humidité","HC-SR04 : mesurer une distance par ultrason","Servo SG90 : contrôle d'angle précis","LCD I2C 16x2 : afficher des données"]},{"n":3,"title":"Protocoles embarqués","sub":"UART, I2C, SPI","topics":["UART : communication série asynchrone","I2C : bus 2 fils, adresses 7 bits","SPI : 4 fils, plus rapide, full-duplex","Déboguer avec un analyseur logique"]},{"n":4,"title":"Raspberry Pi","sub":"Linux embarqué et GPIO","topics":["Installer Raspberry Pi OS avec RPi Imager","SSH depuis PC sans écran (headless)","GPIO en Python : RPi.GPIO ou gpiozero","Serveur web minimal avec Flask sur le Pi"]},{"n":5,"title":"Serveur Flask et IoT","sub":"Dashboard capteurs en temps réel","topics":["Flask : routes, templates, jsonify","Données capteurs vers API REST","Chart.js pour les visualisations","Stocker les données en SQLite"]},{"n":6,"title":"Sécurité IoT","sub":"Analyser les objets connectés","topics":["Inventorier les appareils IoT avec nmap","Capturer le trafic d'un objet (Wireshark)","MQTT : protocole IoT souvent non chiffré","Firmware analysis avec binwalk"]},{"n":7,"title":"Projet IoT Sécurisé","sub":"Dashboard avec authentification","topics":["flask-login : gestion des sessions","HTTPS avec certificat auto-signé","SQLite pour stocker l'historique","Alertes Telegram si seuil dépassé"]},{"n":8,"title":"Système Arduino + Pi","sub":"Projet SIN intégré complet","topics":["Arduino vers Pi via UART : envoi données capteurs","Pi stocke en SQLite, sert le dashboard Flask","Schéma électronique complet avec Fritzing","Documentation technique du projet"]}]}];
+var BQ_DEFS = [
+  {id:'bq1',icon:'🔥',title:'Serie 3 jours',xp:50,check:function(){return myStreak>=3;}},
+  {id:'bq2',icon:'🔥',title:'Serie 7 jours',xp:150,check:function(){return myStreak>=7;}},
+  {id:'bq3',icon:'🏆',title:'Zone complete',xp:200,check:function(){return ZONES.some(function(z){return z.weeks.every(function(w){return myDone[z.id+'_'+w.n];});});}},
+  {id:'bq4',icon:'🗺️',title:'Explorateur',xp:100,check:function(){return ZONES.filter(function(z){return z.weeks.some(function(w){return myDone[z.id+'_'+w.n];});}).length>=3;}},
+  {id:'bq5',icon:'✅',title:'Sans-faute',xp:120,check:function(){return totalDone()>=5;}},
+  {id:'bq6',icon:'🏃',title:'Marathon',xp:300,check:function(){return totalDone()>=15;}},
+  {id:'bq7',icon:'🌐',title:'Maitre reseau',xp:200,check:function(){var z=ZONES.find(function(x){return x.id==='reseau';});return z&&z.weeks.every(function(w){return myDone[z.id+'_'+w.n];});}}
+];
+var SC_DEFS = [
+  {id:'sc1',icon:'🪂',title:'Alerte Fortnite',desc:'Message V-Bucks suspects.',xp:120,topic:'Phishing jeu video'},
+  {id:'sc2',icon:'🧱',title:'Exploiteur Roblox',desc:'Un joueur triche.',xp:120,topic:'Exploitation et signalement'},
+  {id:'sc3',icon:'🪓',title:'Intrusion Minecraft',desc:'Base detruite cette nuit.',xp:120,topic:'Forensic logs serveur'},
+  {id:'sc4',icon:'🛡️',title:'Le Vaillant',desc:'Mission de synthese.',xp:150,topic:'Defense en profondeur'},
+  {id:'sc5',icon:'🎮',title:'Steam Scam',desc:'Faux support Steam.',xp:120,topic:'Ingenierie sociale'}
+];
+
+// ─── ETAT ────────────────────────────────────────────
+var profile = null, groqKey = '', guestKey = '', myXp = 0;
+var myDone = {}, myStreak = 0, myBQ = {}, myXpCap = null;
+var currentZone = null, currentWeek = null, coursText = '';
+
+function totalDone(){return Object.values(myDone).filter(Boolean).length;}
+function calcXP(){
+  var x=0;
+  ZONES.forEach(function(z){z.weeks.forEach(function(w){if(myDone[z.id+'_'+w.n])x+=100;});});
+  BQ_DEFS.concat(SC_DEFS).forEach(function(q){if(myBQ[q.id])x+=q.xp;});
+  return x;
+}
+function updateXpDisplay(){
+  myXp=calcXP();
+  document.getElementById('xpChip').textContent=myXp+' XP';
+  document.getElementById('pbXp').textContent=myXp+' XP · '+totalDone()+' missions';
+}
+function setMsg(id,text,type){var el=document.getElementById(id);el.textContent=text;el.className='msg'+(type?' msg-'+type:'');}
+
+// ─── TABS LOGIN ───────────────────────────────────────
+document.querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click',function(){
+    var tgt=t.dataset.t;
+    document.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('sel',x.dataset.t===tgt);});
+    document.querySelectorAll('.tp').forEach(function(x){x.classList.remove('show');});
+    document.getElementById('tp-'+tgt).classList.add('show');
+    setMsg('loginMsg','','');
+  });
+});
+
+// ─── LECTURE JSONBin ──────────────────────────────────
+async function readBin(){
+  var headers = {'X-Access-Key': ACCESS_KEY};
+  if(ACCESS_KEY==='<CLE_ACCES_GUEST>') headers = {};
+  var res = await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest', {headers: headers});
+  if(!res.ok) throw new Error('Bin inaccessible (HTTP '+res.status+')');
+  return (await res.json()).record || {};
+}
+async function writeBin(rec){
+  var headers = {'Content-Type':'application/json','X-Access-Key':ACCESS_KEY};
+  var res = await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID, {method:'PUT', headers:headers, body:JSON.stringify(rec)});
+  if(!res.ok){
+    var err = await res.json().catch(function(){return {};});
+    throw new Error('Ecriture refusee ('+res.status+'): '+(err.message||'Verifiez la cle acces dans guest.html'));
+  }
+}
+
+// ─── INSCRIPTION ──────────────────────────────────────
+async function doRegister(){
+  var name = document.getElementById('regName').value.trim();
+  var pwd = document.getElementById('regPwd').value;
+  var pwd2 = document.getElementById('regPwd2').value;
+  setMsg('loginMsg','Verification...','info');
+  if(!name){setMsg('loginMsg','Entre un nom','err');return;}
+  if(pwd.length<4){setMsg('loginMsg','Mot de passe trop court (4 car. min)','err');return;}
+  if(pwd!==pwd2){setMsg('loginMsg','Les mots de passe ne correspondent pas','err');return;}
+  try{
+    var rec = await readBin();
+    // Verifier si le nom existe deja
+    var exists = Object.values(rec).some(function(v){return v&&v.name&&v.name.toLowerCase()===name.toLowerCase()&&v.type==='guest';});
+    if(exists){setMsg('loginMsg','Ce nom est deja pris, choisis-en un autre','err');return;}
+    // Verifier si suspendu (nom banni)
+    var banned = Object.values(rec).some(function(v){return v&&v.bannedName&&v.bannedName.toLowerCase()===name.toLowerCase();});
+    if(banned){setMsg('loginMsg','Ce nom n\'est pas disponible','err');return;}
+    // Creer le compte
+    var key = 'g_'+Date.now();
+    rec[key] = {name:name,type:'guest',password:pwd,xp:0,done:{},streak:0,bonusClaimed:{},
+      suspended:false,createdAt:Date.now(),updatedAt:Date.now()};
+    if(!rec._config)rec._config={};
+    await writeBin(rec);
+    groqKey = (rec._config&&rec._config.sharedGroqKey)||'';
+    setMsg('loginMsg','Compte cree ! Connexion...','ok');
+    setTimeout(function(){startSession(name,{xp:0,done:{},streak:0,bonusClaimed:{},xpCap:null});},800);
+  }catch(e){setMsg('loginMsg','Erreur: '+e.message,'err');}
+}
+
+// ─── CONNEXION ────────────────────────────────────────
+async function doLogin(){
+  var name = document.getElementById('loginName').value.trim();
+  var pwd = document.getElementById('loginPwd').value;
+  setMsg('loginMsg','Verification...','info');
+  if(!name||!pwd){setMsg('loginMsg','Nom et mot de passe requis','err');return;}
+  try{
+    var rec = await readBin();
+    var entry = Object.values(rec).find(function(v){
+      return v&&v.type==='guest'&&v.name&&v.name.toLowerCase()===name.toLowerCase()&&v.password===pwd;
+    });
+    if(!entry){setMsg('loginMsg','Nom ou mot de passe incorrect','err');return;}
+    if(entry.suspended){setMsg('loginMsg','Compte suspendu. Contacte Simon.','err');return;}
+    if(entry.expiresAt&&Date.now()>entry.expiresAt){setMsg('loginMsg','Compte expire. Contacte Simon.','err');return;}
+    groqKey=(rec._config&&rec._config.sharedGroqKey)||'';
+    setMsg('loginMsg','Connexion...','ok');
+    setTimeout(function(){startSession(name,entry);},600);
+  }catch(e){setMsg('loginMsg','Erreur: '+e.message,'err');}
+}
+
+function startSession(name,entry){
+  profile=name;
+  myDone=entry.done||{};myStreak=entry.streak||0;myBQ=entry.bonusClaimed||{};
+  myXpCap=entry.xpCap||null;
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appScreen').style.display='block';
+  document.getElementById('navBar').style.display='flex';
+  document.getElementById('xpChip').style.display='block';
+  document.getElementById('profileBanner').style.display='block';
+  var init=name.toUpperCase().slice(0,2);
+  document.getElementById('pbAvatar').textContent=init;
+  document.getElementById('pbName').textContent=name;
+  updateXpDisplay();
+  renderZones();
+}
+
+function deconnect(){
+  if(!confirm('Deconnexion ?'))return;
+  profile=null;groqKey='';myDone={};myStreak=0;myBQ={};
+  document.getElementById('loginScreen').style.display='block';
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('navBar').style.display='none';
+  document.getElementById('xpChip').style.display='none';
+  document.getElementById('loginMsg').textContent='';
+}
+
+// ─── NAVIGATION ───────────────────────────────────────
+function showZones(){
+  document.getElementById('zonesScreen').style.display='block';
+  document.getElementById('weeksScreen').style.display='none';
+  document.getElementById('coursScreen').style.display='none';
+  document.getElementById('qcmScreen').style.display='none';
+  renderZones();
+}
+function showBQ(){document.getElementById('zonesScreen').style.display='block';document.getElementById('weeksScreen').style.display='none';document.getElementById('coursScreen').style.display='none';document.getElementById('qcmScreen').style.display='none';renderBQ();}
+function showScenarios(){document.getElementById('zonesScreen').style.display='block';document.getElementById('weeksScreen').style.display='none';document.getElementById('coursScreen').style.display='none';document.getElementById('qcmScreen').style.display='none';renderScenarios();}
+
+// ─── ZONES ───────────────────────────────────────────
+function renderZones(){
+  var html='';
+  ZONES.forEach(function(z){
+    var done=z.weeks.filter(function(w){return myDone[z.id+'_'+w.n];}).length;
+    html+='<div class="zone-item" onclick="selectZone(\''+z.id+'\')">'+
+      '<div style="display:flex;align-items:center;gap:10px">'+
+      '<span style="font-size:24px">'+z.icon+'</span>'+
+      '<div><div class="zone-name" style="color:'+z.color+'">'+z.name+'</div>'+
+      '<div class="zone-desc">'+z.desc+'</div></div></div>'+
+      '<div class="zone-prog" style="color:'+z.color+'">'+done+'/'+z.weeks.length+' semaines'+(done===z.weeks.length?' ✅':'')+'</div>'+
+      '</div>';
+  });
+  document.getElementById('zonesList').innerHTML=html;
+  renderBQ();renderScenarios();
+}
+function selectZone(zid){
+  currentZone=ZONES.find(function(z){return z.id===zid;});
+  document.getElementById('zonesScreen').style.display='none';
+  document.getElementById('weeksScreen').style.display='block';
+  document.getElementById('weeksTitle').textContent=currentZone.icon+' '+currentZone.name;
+  var html='';
+  currentZone.weeks.forEach(function(w){
+    var done=!!myDone[currentZone.id+'_'+w.n];
+    html+='<div class="week-item" onclick="selectWeek('+w.n+')">'+
+      '<div><div style="font-family:monospace;font-size:12px;color:#6f8a99">S'+w.n+'</div>'+
+      '<div>'+w.title+'</div></div>'+
+      '<div class="'+(done?'week-ok':'')+'">'+( done?'✅':'▶')+'</div></div>';
+  });
+  document.getElementById('weeksList').innerHTML=html;
+  document.getElementById('backToWeeksBtn').onclick=showZones;
+  document.getElementById('backToCoursBtn').onclick=function(){
+    document.getElementById('coursScreen').style.display='block';
+    document.getElementById('qcmScreen').style.display='none';
+  };
+}
+function selectWeek(n){
+  currentWeek=currentZone.weeks.find(function(w){return w.n===n;});
+  document.getElementById('weeksScreen').style.display='none';
+  document.getElementById('coursScreen').style.display='block';
+  document.getElementById('coursTitle').textContent='📚 S'+n+' · '+currentWeek.title;
+  document.getElementById('coursBody').textContent='Generation du cours...';
+  document.getElementById('goQcmBtn').style.display='none';
+  generateCours();
+}
+
+// ─── COURS ───────────────────────────────────────────
+async function generateCours(){
+  if(!groqKey){document.getElementById('coursBody').textContent='Cle Groq non configuree. Contacte Simon.';return;}
+  try{
+    var res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},
+      body:JSON.stringify({model:MODEL,max_tokens:400,temperature:0.7,messages:[
+        {role:'system',content:'Prof cybersecurite. Cours 180 mots lyceen STI2D. TEXTE UNIQUEMENT.'},
+        {role:'user',content:'Zone:'+currentZone.name+' S'+currentWeek.n+':'+currentWeek.title+' Sujets:'+currentWeek.topics.join(',')}
+      ]})
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    coursText=(await res.json()).choices[0].message.content;
+    document.getElementById('coursBody').textContent=coursText;
+    document.getElementById('goQcmBtn').style.display='block';
+  }catch(e){document.getElementById('coursBody').textContent='Erreur cours: '+e.message;document.getElementById('goQcmBtn').style.display='block';}
+}
+
+// ─── QCM ────────────────────────────────────────────
+function showQcm(){
+  document.getElementById('coursScreen').style.display='none';
+  document.getElementById('qcmScreen').style.display='block';
+  document.getElementById('qcmTitle').textContent='🎯 S'+currentWeek.n+' · '+currentWeek.title;
+  document.getElementById('qcmQ').textContent='Generation de la question...';
+  document.getElementById('qcmOpts').innerHTML='';
+  setMsg('qcmMsg','','');
+  generateQCM();
+}
+async function generateQCM(){
+  if(!groqKey){document.getElementById('qcmQ').textContent='Cle Groq non configuree.';return;}
+  try{
+    var res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},
+      body:JSON.stringify({model:MODEL,max_tokens:400,temperature:0.8,messages:[
+        {role:'system',content:'QCM cyber francais lyceen. JSON: {"q":"...","opts":["...","...","...","..."],"ok":0,"exp":"..."}'},
+        {role:'user',content:'Zone:'+currentZone.name+' S'+currentWeek.n+':'+currentWeek.title+' Sujets:'+currentWeek.topics.join(',')}
+      ]})
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    var raw=(await res.json()).choices[0].message.content;
+    var d=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    document.getElementById('qcmQ').textContent=d.q;
+    var optsHtml='';
+    var L=['A','B','C','D'];
+    d.opts.slice(0,4).forEach(function(o,i){optsHtml+='<button class="opt" onclick="answerQCM('+i+','+d.ok+',\''+d.exp.replace(/'/g,"\\'")+'\')">'+ L[i]+' · '+o+'</button>';});
+    document.getElementById('qcmOpts').innerHTML=optsHtml;
+  }catch(e){document.getElementById('qcmQ').textContent='Erreur: '+e.message;}
+}
+function answerQCM(idx,ok,exp){
+  var correct=idx===ok;
+  document.querySelectorAll('.opt').forEach(function(b,i){b.disabled=true;if(i===ok)b.className='opt correct';else if(i===idx&&!correct)b.className='opt wrong';});
+  var already=!!myDone[currentZone.id+'_'+currentWeek.n];
+  setMsg('qcmMsg',(correct?'✅ Correct ! ':'❌ Rate. ')+exp+(correct&&!already?' +100 XP !':''),correct?'ok':'err');
+  if(correct&&!already){
+    myDone[currentZone.id+'_'+currentWeek.n]=true;
+    updateXpDisplay();
+    checkBonus();
+    setTimeout(function(){
+      document.getElementById('qcmScreen').style.display='none';
+      document.getElementById('weeksScreen').style.display='block';
+    },2500);
+  } else {
+    setTimeout(function(){if(!correct)showQcm();},2000);
+  }
+}
+
+// ─── BONUS QUETES ────────────────────────────────────
+function checkBonus(){
+  BQ_DEFS.forEach(function(q){if(!myBQ[q.id]&&q.check()){myBQ[q.id]=true;updateXpDisplay();alert(q.icon+' Quete debloquee : '+q.title+' +'+q.xp+' XP !');} });
+}
+function renderBQ(){
+  var html='';
+  BQ_DEFS.forEach(function(q){var done=!!myBQ[q.id];html+='<div class="bq-item"><div><div style="font-size:13px">'+q.icon+' '+q.title+'</div><div style="font-size:11px;color:#6f8a99">'+q.xp+' XP</div></div><div class="'+(done?'bq-done':'bq-todo')+'">'+(done?'✅':'—')+'</div></div>';});
+  document.getElementById('bqList').innerHTML=html;
+}
+function renderScenarios(){
+  var html='';
+  SC_DEFS.forEach(function(s){var done=!!myBQ[s.id];html+='<div class="bq-item" style="cursor:pointer" onclick="startScenario(\''+s.id+'\')"><div><div style="font-size:13px">'+s.icon+' '+s.title+'</div><div style="font-size:11px;color:#6f8a99">'+s.desc+' · '+s.xp+' XP</div></div><div class="'+(done?'bq-done':'bq-todo')+'">'+(done?'✅':'▶')+'</div></div>';});
+  document.getElementById('scList').innerHTML=html;
+}
+function startScenario(sid){
+  var s=SC_DEFS.find(function(x){return x.id===sid;});
+  if(!s)return;
+  currentZone={name:'Scenario',icon:s.icon,color:'#ff2ecb',id:'sc'};
+  currentWeek={n:0,title:s.title,sub:s.desc,topics:[s.topic]};
+  document.getElementById('zonesScreen').style.display='none';
+  document.getElementById('qcmScreen').style.display='block';
+  document.getElementById('qcmTitle').textContent=s.icon+' '+s.title;
+  document.getElementById('qcmQ').textContent='Generation...';
+  document.getElementById('qcmOpts').innerHTML='';
+  setMsg('qcmMsg','','');
+  generateQCM();
+  document.getElementById('backToCoursBtn').onclick=function(){document.getElementById('qcmScreen').style.display='none';document.getElementById('zonesScreen').style.display='block';renderScenarios();};
+}
+</script>
+</body>
+</html>
