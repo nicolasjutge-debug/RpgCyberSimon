@@ -1450,11 +1450,8 @@ async function openAdminModal(){
   // Si pas de clé JSONBin → afficher saisie inline
   var mk=_getMk();
   if(!mk){
-    el('admin-local-list').innerHTML=
-      '<div style="font-size:12px;margin-bottom:8px;color:var(--text2)">Entre ta cle JSONBin pour acceder aux comptes guests :</div>'+
-      '<input id="admin-mk-input" type="password" placeholder="$2a$10$..." style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#fff;font-family:monospace;font-size:12px">'+
-      '<button id="admin-mk-save" style="width:100%;padding:10px;margin-top:8px;background:var(--cyan);color:#04141a;border:none;border-radius:8px;font-family:var(--pixel);font-size:11px;font-weight:700;cursor:pointer" data-action="admin-mk-save">VALIDER LA CLE</button>'+
-      '<div id="admin-mk-msg" style="font-size:11px;color:var(--red);margin-top:6px;min-height:14px"></div>';
+    // Pas de cle : ouvrir admin.html standalone qui gère sa propre auth
+    el('admin-local-list').innerHTML='<div style="padding:10px;text-align:center"><a href="admin.html" style="background:var(--cyan);color:#04141a;padding:12px 20px;border-radius:8px;font-family:var(--pixel);font-size:11px;font-weight:700;text-decoration:none">Ouvrir le Panel Admin</a><div style="font-size:11px;color:var(--text2);margin-top:8px">Configure ta cle JSONBin dans admin.html</div></div>';
     el('admin-guest-list').innerHTML='';
     return;
   }

@@ -55,6 +55,11 @@ input,select{width:100%;padding:11px;background:#060a10;border:1px solid #1c2c3d
   <div class="sub">Panel Admin — Simon uniquement</div>
 </div>
 
+<div style="background:#0d0d1a;border-bottom:1px solid #1c2c3d;padding:8px 16px;display:flex;align-items:center;gap:12px">
+  <a href="index.html" style="font-family:monospace;font-size:11px;color:#6f8a99;text-decoration:none;padding:6px 12px;border:1px solid #1c2c3d;border-radius:6px">← CyberQuest</a>
+  <span style="font-family:monospace;font-size:10px;color:#1c2c3d">|</span>
+  <span style="font-family:monospace;font-size:10px;color:#6f8a99">Panel Admin</span>
+</div>
 <div class="card" id="loginCard">
   <div class="ct">CLE JSONBIN</div>
   <div class="cb">
@@ -181,6 +186,7 @@ async function doConnect(){
     MK=k; lss("cq_admin_mk",MK);
     $id("loginCard").style.display="none";
     $id("mainPanel").style.display="block";
+    doLoadJoueurs();
     doLoadGuests();
   }catch(e){setMsg("loginMsg","Erreur: "+e.message,"mer");}
 }
@@ -210,6 +216,43 @@ async function doGenCode(profil){
     $id("codeBox").style.display="block";
     setMsg("codeMsg","Code genere pour "+profil+" - valable 30 min","mok");
   }catch(e){setMsg("codeMsg","Erreur: "+e.message,"mer");}
+}
+
+async function doLoadJoueurs(){
+  var el=$id("joueursList");
+  if(!el)return;
+  el.innerHTML="<div style='color:#6f8a99;font-size:11px;font-family:monospace'>Chargement...</div>";
+  try{
+    var rec=await readBin();
+    el.innerHTML="";
+    var has=false;
+    // Afficher tous les profils non-guest (p_xxx ou clés Simon/Niko)
+    Object.keys(rec).forEach(function(k){
+      var v=rec[k];
+      if(!v||!v.name)return;
+      if(k.startsWith("g_")||k.startsWith("_"))return; // exclure guests et config
+      has=true;
+      var card=document.createElement("div");
+      card.className="gc";
+      card.style.cssText="background:#0a1020;border:1px solid #1c2c3d";
+      var xp=v.xp||0;
+      var done=v.done?Object.values(v.done).filter(Boolean).length:0;
+      var streak=v.streak||0;
+      card.innerHTML="<div class='gname' style='color:#b14eff'>"+(v.avatar||"🎮")+" "+v.name+"</div>"
+        +"<div class='ginfo'>"
+        +"XP: <b style='color:#00f0ff'>"+xp+"</b>"
+        +" | Missions: <b style='color:#ffb020'>"+done+"</b>"
+        +" | Streak: "+streak+" j"
+        +(v.updatedAt?" | Sync: "+new Date(v.updatedAt).toLocaleDateString("fr"):"")
+        +"</div>";
+      el.appendChild(card);
+    });
+    if(!has){
+      el.innerHTML="<div style='color:#6f8a99;font-size:11px;font-family:monospace'>Aucun joueur synchronise. Lance une Sync depuis CyberQuest d abord.</div>";
+    }
+  }catch(e){
+    el.innerHTML="<div style='color:#ff3b5c;font-size:11px;font-family:monospace'>"+e.message+"</div>";
+  }
 }
 
 /* ── CREER GUEST ─────────────────────────────────────────── */
