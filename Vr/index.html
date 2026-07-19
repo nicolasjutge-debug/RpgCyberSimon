@@ -766,5 +766,165 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch
 })();
 </script>
 
+<script>
+(function(){
+  var banner=null, modal=null, timerIv=null;
+
+  function ensureBanner(){
+    if(banner)return banner;
+    banner=document.createElement('div');
+    banner.id='sdBannerVR';
+    banner.style.cssText='position:fixed;left:50%;top:60px;transform:translateX(-50%);z-index:8000;background:linear-gradient(90deg,#ff2ecb,#b14eff);color:#fff;font-family:monospace;font-size:11px;font-weight:700;padding:9px 16px;border-radius:20px;box-shadow:0 4px 14px rgba(177,78,255,.4);cursor:pointer;display:none;letter-spacing:.03em;max-width:88vw;text-align:center;';
+    document.body.appendChild(banner);
+    banner.addEventListener('click',openChallenge);
+    return banner;
+  }
+
+  async function checkSuddenDeath(){
+    if(!jbKey||!profile)return;
+    try{
+      var res=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest',{headers:{'X-Master-Key':jbKey}});
+      if(!res.ok)return;
+      var rec=(await res.json()).record||{};
+      var ranked=Object.keys(rec).filter(function(k){
+        var v=rec[k];
+        return v&&v.name&&v.type!=='guest'&&k.indexOf('_')!==0;
+      }).map(function(k){return {key:k,name:rec[k].name,xp:rec[k].xp||0};})
+        .sort(function(a,b){return b.xp-a.xp;});
+
+      var b=ensureBanner();
+      if(ranked.length<2||ranked[0].xp===0||ranked[0].xp!==ranked[1].xp){
+        b.style.display='none'; return;
+      }
+      var topxp=ranked[0].xp;
+      var sd=rec._suddenDeath||{};
+      if(sd[topxp]&&sd[topxp].winner){
+        b.style.display='none'; return;
+      }
+      var tied=ranked.filter(function(r){return r.xp===topxp;});
+      var iAmTied=tied.some(function(r){return r.name.toLowerCase()===profile;});
+      if(!iAmTied){ b.style.display='none'; return; }
+
+      var others=tied.filter(function(r){return r.name.toLowerCase()!==profile;}).map(function(r){return r.name;}).join(', ');
+      b.textContent='\u26A1 MORT SUBITE \u2014 \u00E9galit\u00E9 avec '+others+' !';
+      b.dataset.topxp=topxp;
+      b.style.display='block';
+    }catch(e){}
+  }
+
+  function closeModal(){
+    if(modal&&modal.parentNode)modal.parentNode.removeChild(modal);
+    modal=null;
+    if(timerIv){clearInterval(timerIv);timerIv=null;}
+  }
+
+  function openChallenge(){
+    var topxp=banner?banner.dataset.topxp:null;
+    if(!topxp)return;
+    closeModal();
+    modal=document.createElement('div');
+    modal.style.cssText='position:fixed;inset:0;z-index:8500;background:rgba(4,4,10,.94);display:flex;align-items:center;justify-content:center;padding:20px;font-family:monospace;';
+    modal.innerHTML='<div style="background:#0d0d1a;border:2px solid #ff2ecb;border-radius:12px;padding:22px;max-width:340px;width:100%;text-align:center;">'
+      +'<div style="font-size:14px;font-weight:700;color:#ff2ecb;margin-bottom:10px;">\u26A1 D\u00C9FI MORT SUBITE</div>'
+      +'<div id="sdBodyVR" style="font-size:12px;color:#cfe7ee;line-height:1.6;">R\u00E9ponds correctement en moins de 15 secondes pour remporter le d\u00E9partage.</div>'
+      +'<button id="sdStartBtnVR" style="width:100%;padding:12px;margin-top:16px;background:#ff2ecb;color:#fff;border:none;border-radius:8px;font-family:inherit;font-weight:700;cursor:pointer;">COMMENCER</button>'
+      +'<button id="sdCloseBtnVR" style="width:100%;padding:10px;margin-top:8px;background:transparent;border:1px solid #333;color:#6f8a99;border-radius:8px;font-family:inherit;cursor:pointer;">Plus tard</button>'
+      +'</div>';
+    document.body.appendChild(modal);
+    document.getElementById('sdCloseBtnVR').addEventListener('click',closeModal);
+    document.getElementById('sdStartBtnVR').addEventListener('click',function(){ startChallenge(topxp); });
+  }
+
+  async function startChallenge(topxp){
+    var body=document.getElementById('sdBodyVR');
+    var startBtn=document.getElementById('sdStartBtnVR');
+    if(startBtn)startBtn.style.display='none';
+    var closeBtn=document.getElementById('sdCloseBtnVR');
+    if(closeBtn)closeBtn.style.display='none';
+    body.innerHTML='G\u00E9n\u00E9ration de la question...';
+
+    if(!groqKey||groqKey.length<10){
+      body.innerHTML='Cl\u00E9 API Groq requise pour le d\u00E9fi.';
+      return;
+    }
+
+    var topics=['phishing','mots de passe','r\u00E9seaux','Linux','cryptographie','ing\u00E9nierie sociale'];
+    var topic=topics[Math.floor(Math.random()*topics.length)];
+    try{
+      var resp=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+groqKey},
+        body:JSON.stringify({model:MODEL,max_tokens:300,temperature:0.8,messages:[
+          {role:'user',content:'QCM cybersecurite rapide en francais sur le theme: '+topic+'. JSON UNIQUEMENT: {"q":"...","opts":["...","...","...","..."],"ok":0}'}
+        ]})
+      });
+      if(!resp.ok)throw new Error('HTTP '+resp.status);
+      var data=await resp.json();
+      var raw=(data.choices[0].message.content||'').replace(/```json|```/g,'').trim();
+      var d=JSON.parse(raw);
+
+      var timeLeft=15;
+      var L=['A','B','C','D'];
+      body.innerHTML='<div style="font-size:13px;color:#fff;margin-bottom:10px;">'+d.q+'</div>'
+        +'<div id="sdTimerBarVR" style="height:5px;background:#2a2a50;border-radius:3px;overflow:hidden;margin-bottom:12px;"><div id="sdTimerFillVR" style="height:100%;width:100%;background:#ff2ecb;transition:width 1s linear;"></div></div>'
+        +'<div id="sdOptsVR"></div>';
+      var optsC=document.getElementById('sdOptsVR');
+      d.opts.slice(0,4).forEach(function(o,i){
+        var b=document.createElement('button');
+        b.style.cssText='display:block;width:100%;text-align:left;padding:10px 12px;margin-bottom:6px;background:rgba(255,255,255,.05);border:1px solid #2a2a50;border-radius:7px;color:#cfe7ee;font-size:12px;cursor:pointer;font-family:inherit;';
+        b.textContent=L[i]+' \u00B7 '+o;
+        b.addEventListener('click',function(){ submitAnswer(i,d.ok,topxp); });
+        optsC.appendChild(b);
+      });
+
+      timerIv=setInterval(function(){
+        timeLeft--;
+        var fill=document.getElementById('sdTimerFillVR');
+        if(fill)fill.style.width=Math.max(0,(timeLeft/15*100))+'%';
+        if(timeLeft<=0){
+          clearInterval(timerIv); timerIv=null;
+          submitAnswer(-1,d.ok,topxp);
+        }
+      },1000);
+
+    }catch(e){
+      body.innerHTML='Erreur: '+e.message;
+    }
+  }
+
+  async function submitAnswer(idx,ok,topxp){
+    if(timerIv){clearInterval(timerIv);timerIv=null;}
+    var body=document.getElementById('sdBodyVR');
+    var correct=(idx===ok);
+    if(!correct){
+      if(body)body.innerHTML='<div style="color:#ff3b5c;font-weight:700;">'+(idx===-1?'Temps ecoule !':'Mauvaise reponse.')+'</div><div style="font-size:11px;color:#6f8a99;margin-top:8px;">Tu peux retenter depuis la banniere.</div>';
+      return;
+    }
+    if(body)body.innerHTML='<div style="color:#27e0a0;font-weight:700;">Correct ! Enregistrement...</div>';
+    try{
+      var r=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest',{headers:{'X-Master-Key':jbKey}});
+      var rec=(await r.json()).record||{};
+      if(!rec._suddenDeath)rec._suddenDeath={};
+      if(!rec._suddenDeath[topxp]||!rec._suddenDeath[topxp].winner){
+        rec._suddenDeath[topxp]={winner:profile,wonAt:Date.now()};
+        await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':jbKey},body:JSON.stringify(rec)});
+        if(body)body.innerHTML='<div style="color:#27e0a0;font-weight:700;">\uD83C\uDFC6 D\u00E9partage remport\u00E9 !</div><div style="font-size:11px;color:#6f8a99;margin-top:8px;">Tu es d\u00E9sormais devant au d\u00E9partage.</div>';
+      }else{
+        if(body)body.innerHTML='<div style="color:#ffb020;">'+rec._suddenDeath[topxp].winner+' a d\u00E9j\u00E0 remport\u00E9 ce d\u00E9partage.</div>';
+      }
+      var b=document.getElementById('sdBannerVR');
+      if(b)b.style.display='none';
+      setTimeout(closeModal,2500);
+    }catch(e){
+      if(body)body.innerHTML='Erreur sauvegarde: '+e.message;
+    }
+  }
+
+  // Polling
+  setTimeout(checkSuddenDeath,3000);
+  setInterval(checkSuddenDeath,25000);
+})();
+</script>
+
 </body>
 </html>
