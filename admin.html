@@ -76,13 +76,21 @@ input,select{width:100%;padding:11px;background:#060a10;border:1px solid #1c2c3d
   <div class="card">
     <div class="ct">JSONBIN — ACCES GUEST</div>
     <div class="cb">
-      <div class="info">Le mode Public JSONBin est supprime. Cree une X-Access-Key pour les guests.</div>
-      <div style="font-size:12px;line-height:1.7;margin-bottom:10px">
-        1. <a href="https://jsonbin.io/app/keys" target="_blank" style="color:#00f0ff">jsonbin.io/app/keys</a> → Create Access Key<br>
-        2. Donne acces en lecture+ecriture au bin <code style="color:#27e0a0">cyberquest-classement</code><br>
-        3. Copie la cle et colle-la dans guest.html a la ligne <code style="color:#ff2ecb">ACCESS_KEY</code>
+      <div class="info">Le mode Public JSONBin est supprime. Genere une X-Access-Key automatiquement (via l\'API JSONBin, sans passer par le dashboard).</div>
+      <button class="btn bc" id="autoKeyBtn">GENERER LA CLE AUTOMATIQUEMENT</button>
+      <div class="msg" id="autoKeyMsg"></div>
+      <div class="gc" id="autoKeyResult" style="display:none;margin-top:10px">
+        <div class="gname" style="color:#00f0ff">Cle generee :</div>
+        <div class="gp" id="autoKeyVal" style="font-size:14px;letter-spacing:1px;word-break:break-all;padding:12px"></div>
+        <button class="btn bp" id="autoKeyCopyBtn" style="margin-top:6px">COPIER</button>
+        <div style="font-size:11px;color:#6f8a99;margin-top:8px;line-height:1.5">
+          Colle cette valeur une seule fois dans <b>guest.html</b> a la ligne <code style="color:#ff2ecb">ACCESS_KEY</code>.<br>
+          Note : cette cle a acces en lecture/ecriture a l\'ensemble de ton compte JSONBin (limitation de l\'API JSONBin — pas de restriction par bin individuel).
+        </div>
       </div>
-      <div class="ok">Cette cle permet aux guests de lire/ecrire sans exposer ta Master Key.</div>
+      <div style="border-top:1px solid #1c2c3d;margin:14px 0 10px;padding-top:10px;font-size:11px;color:#6f8a99">
+        Ou manuellement : <a href="https://jsonbin.io/app/keys" target="_blank" style="color:#00f0ff">jsonbin.io/app/keys</a> → Create Access Key (lecture+ecriture)
+      </div>
     </div>
   </div>
 
@@ -150,6 +158,7 @@ input,select{width:100%;padding:11px;background:#060a10;border:1px solid #1c2c3d
 var BIN = "6a42d25af5f4af5e2943be8f";
 var MK = "";
 var GCACHE = {};
+var JCACHE = {};
 
 function lsg(k){try{return localStorage.getItem(k)||"";}catch(e){return "";}}
 function lss(k,v){try{localStorage.setItem(k,v);}catch(e){}}
@@ -224,28 +233,15 @@ async function doLoadJoueurs(){
   el.innerHTML="<div style='color:#6f8a99;font-size:11px;font-family:monospace'>Chargement...</div>";
   try{
     var rec=await readBin();
+    JCACHE=rec;
     el.innerHTML="";
     var has=false;
-    // Afficher tous les profils non-guest (p_xxx ou clés Simon/Niko)
     Object.keys(rec).forEach(function(k){
       var v=rec[k];
       if(!v||!v.name)return;
-      if(k.startsWith("g_")||k.startsWith("_"))return; // exclure guests et config
+      if(k.startsWith("g_")||k.startsWith("_"))return;
       has=true;
-      var card=document.createElement("div");
-      card.className="gc";
-      card.style.cssText="background:#0a1020;border:1px solid #1c2c3d";
-      var xp=v.xp||0;
-      var done=v.done?Object.values(v.done).filter(Boolean).length:0;
-      var streak=v.streak||0;
-      card.innerHTML="<div class='gname' style='color:#b14eff'>"+(v.avatar||"🎮")+" "+v.name+"</div>"
-        +"<div class='ginfo'>"
-        +"XP: <b style='color:#00f0ff'>"+xp+"</b>"
-        +" | Missions: <b style='color:#ffb020'>"+done+"</b>"
-        +" | Streak: "+streak+" j"
-        +(v.updatedAt?" | Sync: "+new Date(v.updatedAt).toLocaleDateString("fr"):"")
-        +"</div>";
-      el.appendChild(card);
+      el.appendChild(buildPlayerCard(k,v));
     });
     if(!has){
       el.innerHTML="<div style='color:#6f8a99;font-size:11px;font-family:monospace'>Aucun joueur synchronise. Lance une Sync depuis CyberQuest d abord.</div>";
@@ -253,6 +249,50 @@ async function doLoadJoueurs(){
   }catch(e){
     el.innerHTML="<div style='color:#ff3b5c;font-size:11px;font-family:monospace'>"+e.message+"</div>";
   }
+}
+
+function buildPlayerCard(k,v){
+  var card=document.createElement("div");
+  card.className="gc";
+  card.style.cssText="background:#0a1020;border:1px solid #1c2c3d";
+  var xp=v.xp||0;
+  var done=v.done?Object.values(v.done).filter(Boolean).length:0;
+  var streak=v.streak||0;
+  var susp=!!v.suspended;
+
+  var nameEl=document.createElement("div");
+  nameEl.className="gname";
+  nameEl.style.color=susp?"#ff3b5c":"#b14eff";
+  nameEl.textContent=(v.avatar||"\uD83C\uDFAE")+" "+v.name+(susp?" (SUSPENDU)":"");
+  card.appendChild(nameEl);
+
+  var infoEl=document.createElement("div");
+  infoEl.className="ginfo";
+  infoEl.textContent="XP: "+xp+" | Missions: "+done+" | Streak: "+streak+" j | "
+    +"Zones: "+(v.allowedZones?v.allowedZones.join(","):"Toutes")+" | "
+    +(v.xpCap?v.xpCap+" XP max":"Illimite")+" | Bonus: "+(v.allowBonus===false?"OFF":"ON")
+    +(v.updatedAt?" | Sync: "+new Date(v.updatedAt).toLocaleDateString("fr"):"");
+  card.appendChild(infoEl);
+
+  var btns=document.createElement("div");
+  btns.className="gbtns";
+  var defs=[
+    {action:"susp", cls:"ab-s", label:susp?"Restaurer":"Suspendre"},
+    {action:"zones",cls:"ab-z", label:"Zones"},
+    {action:"xp",   cls:"ab-x", label:"XP max"},
+    {action:"bonus",cls:"ab-b", label:"Bonus "+(v.allowBonus===false?"OFF":"ON")}
+  ];
+  defs.forEach(function(d){
+    var b=document.createElement("button");
+    b.className="ab "+d.cls;
+    b.textContent=d.label;
+    b.setAttribute("data-action",d.action);
+    b.setAttribute("data-k",k);
+    b.setAttribute("data-src","player");
+    btns.appendChild(b);
+  });
+  card.appendChild(btns);
+  return card;
 }
 
 /* ── CREER GUEST ─────────────────────────────────────────── */
@@ -372,11 +412,12 @@ document.addEventListener("click",function(e){
   if(!btn.hasAttribute("data-action"))return;
   var action=btn.getAttribute("data-action");
   var k=btn.getAttribute("data-k");
+  var src=btn.getAttribute("data-src");
   e.stopPropagation();
-  if(action==="susp")    actionSusp(k);
-  else if(action==="zones") actionZones(k);
-  else if(action==="xp")    actionXp(k);
-  else if(action==="bonus")  actionBonus(k);
+  if(action==="susp")    actionSusp(k,src);
+  else if(action==="zones") actionZones(k,src);
+  else if(action==="xp")    actionXp(k,src);
+  else if(action==="bonus")  actionBonus(k,src);
   else if(action==="del")    actionDel(k);
   /* boutons hors-guest */
   else if(action==="connect") doConnect();
@@ -387,43 +428,46 @@ document.addEventListener("click",function(e){
   else if(action==="deco")    doDeco();
 });
 
-async function actionSusp(k){
-  var v=GCACHE[k]||{};
+function _resolveCache(k,src){ return (src==="player"?JCACHE[k]:GCACHE[k])||{}; }
+function _refreshLists(){ doLoadGuests(); doLoadJoueurs(); }
+
+async function actionSusp(k,src){
+  var v=_resolveCache(k,src);
   var cur=!!v.suspended;
-  try{var rec=await readBin();if(rec[k])rec[k].suspended=!cur;await writeBin(rec);doLoadGuests();}
+  try{var rec=await readBin();if(rec[k])rec[k].suspended=!cur;await writeBin(rec);_refreshLists();}
   catch(e){alert("Erreur: "+e.message);}
 }
-async function actionZones(k){
-  var v=GCACHE[k]||{};
+async function actionZones(k,src){
+  var v=_resolveCache(k,src);
   var cur=(v.allowedZones||[]).join(",");
   var inp=prompt("Zones autorisees (virgule, vide=toutes):",cur);
   if(inp===null)return;
   try{
     var rec=await readBin();
     if(rec[k])rec[k].allowedZones=inp.trim()?inp.split(",").map(function(s){return s.trim();}):null;
-    await writeBin(rec);doLoadGuests();
+    await writeBin(rec);_refreshLists();
   }catch(e){alert("Erreur: "+e.message);}
 }
-async function actionXp(k){
-  var v=GCACHE[k]||{};
+async function actionXp(k,src){
+  var v=_resolveCache(k,src);
   var inp=prompt("XP maximum (0 = illimite):",v.xpCap||0);
   if(inp===null)return;
   var cap=parseInt(inp)||null;
   try{
     var rec=await readBin();
     if(rec[k])rec[k].xpCap=cap&&cap>0?cap:null;
-    await writeBin(rec);doLoadGuests();
+    await writeBin(rec);_refreshLists();
   }catch(e){alert("Erreur: "+e.message);}
 }
-async function actionBonus(k){
-  var v=GCACHE[k]||{};
+async function actionBonus(k,src){
+  var v=_resolveCache(k,src);
   var isOn=v.allowBonus!==false;
   var label=isOn?"Desactiver":"Activer";
-  if(!confirm(label+" les quetes bonus pour ce guest ?"))return;
+  if(!confirm(label+" les quetes bonus ?"))return;
   try{
     var rec=await readBin();
     if(rec[k])rec[k].allowBonus=!isOn;
-    await writeBin(rec);doLoadGuests();
+    await writeBin(rec);_refreshLists();
   }catch(e){alert("Erreur: "+e.message);}
 }
 async function actionDel(k){
@@ -443,6 +487,44 @@ $id("codeNiko").setAttribute("data-action","code-niko");
 $id("createGuestBtn").setAttribute("data-action","create");
 $id("refreshBtn").setAttribute("data-action","refresh");
 $id("decoBtn").setAttribute("data-action","deco");
+
+
+/* ── AUTO-GENERATION CLE ACCES GUEST (via API JSONBin) ── */
+document.getElementById("autoKeyBtn").addEventListener("click", async function(){
+  setMsg("autoKeyMsg","Generation en cours...","mi");
+  try{
+    var keyName="cyberquest-guest-"+Date.now().toString().slice(-6);
+    var r=await fetch("https://api.jsonbin.io/v3/a",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "X-Master-Key":MK,
+        "X-Key-Name":keyName
+      },
+      body:JSON.stringify({bins:{read:true,update:true,create:false,delete:false}})
+    });
+    var d=await r.json();
+    if(!r.ok||!d.accessKey){
+      throw new Error(d.message||("HTTP "+r.status));
+    }
+    document.getElementById("autoKeyVal").textContent=d.accessKey;
+    document.getElementById("autoKeyResult").style.display="block";
+    setMsg("autoKeyMsg","Cle generee avec succes.","mok");
+  }catch(e){
+    setMsg("autoKeyMsg","Erreur: "+e.message+" — utilise la methode manuelle ci-dessous.","mer");
+  }
+});
+document.getElementById("autoKeyCopyBtn").addEventListener("click", function(){
+  var val=document.getElementById("autoKeyVal").textContent;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(val).then(function(){
+      setMsg("autoKeyMsg","Cle copiee dans le presse-papier !","mok");
+    }).catch(function(){
+      setMsg("autoKeyMsg","Copie manuelle necessaire (selection + Cmd/Ctrl+C).","mam");
+    });
+  }
+});
+
 </script>
 </body>
 </html>

@@ -249,6 +249,34 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 </style>
 </head>
 <body>
+<div id="bootOverlay" style="position:fixed;inset:0;z-index:99999;background:#04040a;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;">
+<div style="font-family:'Press Start 2P',monospace;font-size:20px;letter-spacing:4px;text-shadow:0 0 14px #00f5ff;margin-bottom:20px;color:#00f5ff;">CYBER<span style="color:#a855f7">QUEST</span></div>
+<div id="bootLines" style="font-size:11px;line-height:1.9;color:#39ff14;width:270px;min-height:130px;"></div>
+<div style="width:270px;height:6px;background:#12121f;border:1px solid #1e1e3a;margin-top:18px;overflow:hidden;">
+<div id="bootBar" style="height:100%;width:0%;background:linear-gradient(90deg,#00f5ff,#a855f7);box-shadow:0 0 10px #00f5ff;"></div>
+</div>
+<div style="font-size:9px;color:#3a3a60;margin-top:12px;letter-spacing:2px;">TAP POUR PASSER</div>
+</div>
+<script>
+(function(){
+  var lines=["> INIT KERNEL................OK","> LOAD SECURITY MODULES......OK","> MOUNT /dev/cyberquest......OK","> DECRYPT PLAYER DATA........OK","> ESTABLISH UPLINK...........OK","> WELCOME, OPERATOR."];
+  var ov=document.getElementById("bootOverlay"),ln=document.getElementById("bootLines"),bar=document.getElementById("bootBar");
+  if(!ov||!ln||!bar)return;
+  var i=0,html="";
+  var iv=setInterval(function(){
+    if(i<lines.length){html+="<div>"+lines[i]+"</div>";ln.innerHTML=html;i++;bar.style.width=Math.round(i/lines.length*100)+"%";}
+    else{clearInterval(iv);setTimeout(close,350);}
+  },200);
+  function close(){
+    if(!ov)return;
+    ov.style.transition="opacity .4s ease";ov.style.opacity="0";
+    setTimeout(function(){if(ov&&ov.parentNode)ov.parentNode.removeChild(ov);},420);
+  }
+  ov.addEventListener("click",close);
+  ov.addEventListener("touchstart",close);
+})();
+</script>
+
 <header class="hdr">
   <div class="hdr-logo">CYBER<span>QUEST</span><br>Simon.JUTG&#201;</div>
   <div class="hdr-right">
@@ -342,6 +370,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
       <div style="display:flex;gap:6px">
         <button class="api-btn" onclick="showJsonbinModal()" style="font-size:7px">&#9729; Sync</button>
         <button class="api-btn" id="gerer-btn" onclick="onGererClick()" style="font-size:7px">&#128100; G&#233;rer</button>
+        <button class="api-btn" id="quitBtn" style="font-size:7px;border-color:#ff3b3b;color:#ff3b3b">&#10060; Quitter</button>
       </div>
     </div>
     <div class="lb-list" id="lblist"></div>
@@ -1746,6 +1775,138 @@ async function toggleGuestBonus(k, v){
     <button class="modal-btn sec" onclick="closeAdminModal()">FERMER</button>
   </div>
 </div>
+
+<script>
+(function(){
+  try{history.pushState({cq:1},"");}catch(e){}
+  var backOv=null;
+  window.cqShowQuit=function(){
+    if(backOv)return;
+    backOv=document.createElement("div");
+    backOv.style.cssText="position:fixed;inset:0;z-index:99998;background:rgba(4,4,10,.92);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;";
+    backOv.innerHTML='<div style="background:#0d0d1a;border:1px solid #2a2a50;border-radius:10px;padding:24px;max-width:280px;text-align:center;">'
+      +'<div style="font-family:\'Press Start 2P\',monospace;font-size:12px;color:#ff3b3b;margin-bottom:16px;">VOULEZ-VOUS QUITTER ?</div>'
+      +'<div style="display:flex;gap:10px;justify-content:center;">'
+      +'<button id="cqQuitYes" style="flex:1;padding:10px;background:#ff3b3b;color:#fff;border:none;border-radius:6px;font-family:inherit;font-weight:700;cursor:pointer;">OUI</button>'
+      +'<button id="cqQuitNo" style="flex:1;padding:10px;background:#12121f;color:#00f5ff;border:1px solid #00f5ff;border-radius:6px;font-family:inherit;font-weight:700;cursor:pointer;">NON</button>'
+      +'</div></div>';
+    document.body.appendChild(backOv);
+    document.getElementById("cqQuitYes").addEventListener("click",function(){
+      // Tentatives de fermeture — fonctionnent rarement sur iOS Safari (restriction Apple :
+      // une page ne peut se fermer que si elle a ete ouverte par script). On tente quand meme,
+      // puis on affiche une consigne claire si ca echoue au lieu de laisser la fenetre figee.
+      var closed=false;
+      try{window.open("","_self","");window.close();closed=true;}catch(e){}
+      try{if(!closed)history.go(-(history.length));}catch(e){}
+      setTimeout(function(){
+        if(backOv&&backOv.parentNode){
+          backOv.innerHTML='<div style="background:#0d0d1a;border:1px solid #2a2a50;border-radius:10px;padding:24px;max-width:280px;text-align:center;">'
+            +'<div style="font-family:\'Press Start 2P\',monospace;font-size:11px;color:#00f5ff;margin-bottom:12px;">FERMETURE MANUELLE</div>'
+            +'<div style="font-size:12px;color:#cfe7ee;line-height:1.6;margin-bottom:16px;">iOS ne permet pas de fermer<br>l\'application automatiquement.<br><br>Appuie sur le bouton <b>Accueil</b><br>ou balaie vers le haut pour quitter.</div>'
+            +'<button id="cqQuitOk" style="width:100%;padding:10px;background:#12121f;color:#00f5ff;border:1px solid #00f5ff;border-radius:6px;font-family:inherit;font-weight:700;cursor:pointer;">OK, COMPRIS</button>'
+            +'</div>';
+          var okBtn=document.getElementById("cqQuitOk");
+          if(okBtn)okBtn.addEventListener("click",function(){
+            if(backOv&&backOv.parentNode)backOv.parentNode.removeChild(backOv);
+            backOv=null;
+          });
+        }
+      },350);
+    });
+    document.getElementById("cqQuitNo").addEventListener("click",function(){
+      if(backOv&&backOv.parentNode)backOv.parentNode.removeChild(backOv);
+      backOv=null;
+      try{history.pushState({cq:1},"");}catch(e){}
+    });
+  };
+  window.addEventListener("popstate",window.cqShowQuit);
+  document.addEventListener("DOMContentLoaded",function(){
+    var qb=document.getElementById("quitBtn");
+    if(qb)qb.addEventListener("click",window.cqShowQuit);
+  });
+  // Au cas où le DOM est deja pret (script en fin de body)
+  var qb0=document.getElementById("quitBtn");
+  if(qb0)qb0.addEventListener("click",window.cqShowQuit);
+})();
+</script>
+
+<button id="musicBtn" style="position:fixed;bottom:14px;right:14px;z-index:9000;width:42px;height:42px;border-radius:50%;background:rgba(6,10,16,.85);border:1px solid #1c2c3d;color:#6f8a99;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">🔇</button>
+<script>
+(function(){
+  var ctx=null, master=null, running=false, muted=true;
+  try{muted = localStorage.getItem("cq_music_muted")!=="0";}catch(e){}
+
+  // Sequence chiptune retro : basse + arpege, boucle 8 pas
+  var bassNotes=[110,110,146.83,110,130.81,110,146.83,98];
+  var leadNotes=[440,523.25,440,659.25,523.25,440,392,440];
+  var step=0;
+
+  function initAudio(){
+    if(ctx)return;
+    try{
+      ctx=new (window.AudioContext||window.webkitAudioContext)();
+      master=ctx.createGain();
+      master.gain.value=muted?0:0.06;
+      master.connect(ctx.destination);
+    }catch(e){}
+  }
+
+  function playStep(){
+    if(!ctx||muted)return;
+    var t=ctx.currentTime;
+    // Basse (carre)
+    var b=ctx.createOscillator(), bg=ctx.createGain();
+    b.type="square"; b.frequency.value=bassNotes[step%bassNotes.length];
+    bg.gain.setValueAtTime(0.5,t); bg.gain.exponentialRampToValueAtTime(0.001,t+0.22);
+    b.connect(bg); bg.connect(master);
+    b.start(t); b.stop(t+0.24);
+    // Lead (triangle) une fois sur deux
+    if(step%2===0){
+      var l=ctx.createOscillator(), lg=ctx.createGain();
+      l.type="triangle"; l.frequency.value=leadNotes[step%leadNotes.length];
+      lg.gain.setValueAtTime(0.25,t); lg.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+      l.connect(lg); lg.connect(master);
+      l.start(t); l.stop(t+0.2);
+    }
+    step=(step+1)%8;
+  }
+
+  function startLoop(){
+    if(running)return;
+    running=true;
+    setInterval(playStep,240);
+  }
+
+  function toggleMusic(){
+    initAudio();
+    if(ctx&&ctx.state==="suspended")ctx.resume();
+    muted=!muted;
+    try{localStorage.setItem("cq_music_muted",muted?"1":"0");}catch(e){}
+    if(master)master.gain.value=muted?0:0.06;
+    var btn=document.getElementById("musicBtn");
+    if(btn)btn.textContent=muted?"\uD83D\uDD07":"\uD83D\uDD0A";
+    startLoop();
+  }
+
+  // Demarrage sur premiere interaction (politique autoplay navigateurs)
+  var started=false;
+  function onFirstGesture(){
+    if(started)return; started=true;
+    initAudio();
+    startLoop();
+    document.removeEventListener("click",onFirstGesture);
+    document.removeEventListener("touchstart",onFirstGesture);
+  }
+  document.addEventListener("click",onFirstGesture,{once:false});
+  document.addEventListener("touchstart",onFirstGesture,{once:false});
+
+  var mb=document.getElementById("musicBtn");
+  if(mb){
+    mb.textContent=muted?"\uD83D\uDD07":"\uD83D\uDD0A";
+    mb.addEventListener("click",function(e){e.stopPropagation();toggleMusic();});
+  }
+})();
+</script>
 
 </body>
 </html>
