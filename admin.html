@@ -511,7 +511,13 @@ document.getElementById("autoKeyBtn").addEventListener("click", async function()
     document.getElementById("autoKeyResult").style.display="block";
     setMsg("autoKeyMsg","Cle generee avec succes.","mok");
   }catch(e){
-    setMsg("autoKeyMsg","Erreur: "+e.message+" — utilise la methode manuelle ci-dessous.","mer");
+    if(/more than 3|access keys/i.test(e.message)){
+      setMsg("autoKeyMsg","Limite atteinte : 3 cles maximum sur le plan gratuit JSONBin.<br>"
+        +"Va sur <a href=\"https://jsonbin.io/app/keys\" target=\"_blank\" style=\"color:#00f0ff\">jsonbin.io/app/keys</a>, "
+        +"supprime une ancienne cle inutilisee, puis reessaie ce bouton.","mam");
+    }else{
+      setMsg("autoKeyMsg","Erreur: "+e.message+" — utilise la methode manuelle ci-dessous.","mer");
+    }
   }
 });
 document.getElementById("autoKeyCopyBtn").addEventListener("click", function(){
