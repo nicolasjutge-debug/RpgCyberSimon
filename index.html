@@ -646,13 +646,14 @@ function saveJsonbinConfig(){
 
 async function syncLeaderboardToCloud(){
   if(!jsonbinKey||!jsonbinId)return;
-  // Lire le bin existant pour preserver les guests
+  // Lire le bin existant et TOUT garder (guests, autres joueurs, config)
+  // — seuls les profils locaux de CET appareil sont mis a jour, rien d'autre n'est efface
   var payload={};
   try{
     var existing=await fetch('https://api.jsonbin.io/v3/b/'+jsonbinId+'/latest',{headers:{'X-Master-Key':jsonbinKey}});
-    if(existing.ok){var ex=await existing.json();var exRec=ex.record||{};Object.keys(exRec).forEach(function(k){if(k.startsWith('g_')||k==='_config')payload[k]=exRec[k];});}
+    if(existing.ok){var ex=await existing.json();payload=ex.record||{};}
   }catch(e){}
-  // Joueurs locaux seulement
+  // Mise a jour des joueurs locaux de cet appareil uniquement (fusion, pas remplacement)
   Object.keys(players).forEach(function(pid){
     var stats=getPlayerStats(pid);
     payload[pid]={name:players[pid].name,avatar:players[pid].avatar,xp:stats.xp,done:stats.done,streak:stats.streak,updatedAt:Date.now()};
