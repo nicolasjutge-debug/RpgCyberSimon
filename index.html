@@ -648,23 +648,38 @@ async function syncLeaderboardToCloud(){
   if(!jsonbinKey||!jsonbinId)return;
   // Lire le bin existant et TOUT garder (guests, autres joueurs, config)
   // — seuls les profils locaux de CET appareil sont mis a jour, rien d'autre n'est efface
-  var payload={};
+  var payload=null;
   try{
     var existing=await fetch('https://api.jsonbin.io/v3/b/'+jsonbinId+'/latest',{headers:{'X-Master-Key':jsonbinKey}});
-    if(existing.ok){var ex=await existing.json();payload=ex.record||{};}
-  }catch(e){}
+    if(existing.ok){
+      var ex=await existing.json();
+      payload=ex.record||{};
+    }else{
+      toast('Sync annulee : lecture bin echouee (HTTP '+existing.status+') — verifie ton ID JSONBin');
+      return;
+    }
+  }catch(e){
+    toast('Sync annulee : '+e.message);
+    return;
+  }
   // Mise a jour des joueurs locaux de cet appareil uniquement (fusion, pas remplacement)
   Object.keys(players).forEach(function(pid){
     var stats=getPlayerStats(pid);
     payload[pid]={name:players[pid].name,avatar:players[pid].avatar,xp:stats.xp,done:stats.done,streak:stats.streak,updatedAt:Date.now()};
   });
   try{
-    await fetch('https://api.jsonbin.io/v3/b/'+jsonbinId,{
+    var putRes=await fetch('https://api.jsonbin.io/v3/b/'+jsonbinId,{
       method:'PUT',
       headers:{'Content-Type':'application/json','X-Master-Key':jsonbinKey},
       body:JSON.stringify(payload)
     });
-  }catch(e){console.log('Sync error',e);}
+    if(!putRes.ok){
+      toast('Sync echouee (HTTP '+putRes.status+') — verifie ta cle/ID JSONBin');
+    }
+  }catch(e){
+    toast('Sync echouee : '+e.message);
+    console.log('Sync error',e);
+  }
 }
 
 async function fetchLeaderboardFromCloud(){
