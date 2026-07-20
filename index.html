@@ -2078,5 +2078,94 @@ async function toggleGuestBonus(k, v){
 })();
 </script>
 
+
+<script>
+// ══════════════════════════════════════════════════════
+// ENFORCEMENT restrictions admin (Suspendre/Zones/XP max)
+// pour comptes CLASSIQUES (Simon/Niko/...), pas seulement guests.
+// Patch additif : n'ecrase pas switchPlayer/renderMap, les enchaine.
+// ══════════════════════════════════════════════════════
+(function(){
+  window._classicAllowedZones = null;
+  window._classicXpCapReached = false;
+
+  async function enforceClassicRestrictions(pid){
+    var suspOv=document.getElementById('classicSuspendedOv');
+    if(suspOv)suspOv.remove();
+    window._classicAllowedZones=null;
+    window._classicXpCapReached=false;
+
+    if(typeof _getMk!=='function'||typeof _getBinId!=='function')return;
+    var mk=_getMk(), bid=_getBinId();
+    if(!mk||!pid||typeof players==='undefined'||!players[pid])return;
+
+    try{
+      var res=await fetch('https://api.jsonbin.io/v3/b/'+bid+'/latest',{headers:{'X-Master-Key':mk}});
+      if(!res.ok)return;
+      var rec=(await res.json()).record||{};
+      var v=rec[pid];
+      if(!v)return;
+
+      if(v.suspended){
+        var ov=document.createElement('div');
+        ov.id='classicSuspendedOv';
+        ov.style.cssText='position:fixed;inset:0;z-index:97000;background:rgba(4,4,10,.96);display:flex;align-items:center;justify-content:center;padding:20px;font-family:monospace;text-align:center;';
+        ov.innerHTML='<div><div style="font-size:15px;color:#ff3b5c;font-weight:700;margin-bottom:10px;">COMPTE SUSPENDU</div>'
+          +'<div style="font-size:12px;color:#cfe7ee;line-height:1.6;margin-bottom:18px;">Ce compte a ete suspendu par l\'administrateur.<br>Contacte Simon pour plus d\'informations.</div>'
+          +'<button id="classicSuspOvBtn" style="padding:11px 22px;background:#12121f;border:1px solid #00f5ff;color:#00f5ff;border-radius:8px;font-family:inherit;cursor:pointer;">Changer de compte</button></div>';
+        document.body.appendChild(ov);
+        var btn=document.getElementById('classicSuspOvBtn');
+        if(btn)btn.addEventListener('click',function(){
+          ov.remove();
+          if(typeof showPlayerModal==='function')showPlayerModal();
+        });
+        return;
+      }
+
+      if(v.allowedZones)window._classicAllowedZones=v.allowedZones;
+      if(v.xpCap&&typeof getPlayerStats==='function'){
+        var stats=getPlayerStats(pid);
+        window._classicXpCapReached = stats.xp>=v.xpCap;
+      }
+      applyClassicZoneFilter();
+    }catch(e){}
+  }
+
+  function applyClassicZoneFilter(){
+    var g=document.getElementById('zonesgrid');
+    if(!g||typeof ZONES==='undefined')return;
+    var cards=g.children;
+    for(var i=0;i<cards.length&&i<ZONES.length;i++){
+      var allowed=!window._classicAllowedZones||window._classicAllowedZones.indexOf(ZONES[i].id)!==-1;
+      cards[i].style.display=(allowed&&!window._classicXpCapReached)?'':'none';
+    }
+    var old=document.getElementById('classicCapMsg');
+    if(old)old.remove();
+    if(window._classicXpCapReached){
+      var m=document.createElement('div');
+      m.id='classicCapMsg';
+      m.style.cssText='grid-column:1/-1;text-align:center;padding:20px;color:#ffb020;font-family:monospace;font-size:12px;';
+      m.textContent='Limite XP atteinte pour ce compte. Contacte Simon pour la modifier.';
+      g.appendChild(m);
+    }
+  }
+
+  // Patch additif — on enchaine sur les fonctions existantes sans les reecrire
+  if(typeof switchPlayer==='function'){
+    var _origSwitchPlayer=switchPlayer;
+    switchPlayer=function(pid){ _origSwitchPlayer(pid); enforceClassicRestrictions(pid); };
+  }
+  if(typeof renderMap==='function'){
+    var _origRenderMap=renderMap;
+    renderMap=function(){ _origRenderMap(); applyClassicZoneFilter(); };
+  }
+
+  // Verification initiale au chargement de la page
+  setTimeout(function(){
+    if(typeof currentPlayerId!=='undefined'&&currentPlayerId)enforceClassicRestrictions(currentPlayerId);
+  },1800);
+})();
+</script>
+
 </body>
 </html>
