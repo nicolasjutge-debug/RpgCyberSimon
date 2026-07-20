@@ -140,6 +140,19 @@ input,select{width:100%;padding:11px;background:#060a10;border:1px solid #1c2c3d
 
   <div class="card">
     <div class="ct">
+      <span>COMPTES JOUEURS</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn ba" id="mergeBtn" style="width:auto;padding:5px 10px;margin:0;font-size:10px">Fusionner doublons</button>
+        <button class="btn bz" id="refreshJBtn" style="width:auto;padding:5px 10px;margin:0;font-size:10px">Actualiser</button>
+      </div>
+    </div>
+    <div class="cb" id="joueursList">
+      <div style="color:#6f8a99;font-size:11px;font-family:monospace">Chargement...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">
       <span>COMPTES GUESTS</span>
       <button class="btn bz" id="refreshBtn" style="width:auto;padding:5px 12px;margin:0;font-size:10px">Actualiser</button>
     </div>
@@ -217,6 +230,37 @@ function doDeco(){
   MK=""; lss("cq_admin_mk","");
   $id("loginCard").style.display="block";
   $id("mainPanel").style.display="none";
+}
+
+async function doMergeDuplicates(){
+  if(!confirm("Fusionner les comptes en double (meme nom) ?\n\nLe compte avec le plus d'XP est garde, les autres sont supprimes."))return;
+  try{
+    var rec=await readBin();
+    var groups={};
+    Object.keys(rec).forEach(function(k){
+      if(k.indexOf("g_")===0||k.indexOf("_")===0)return;
+      var v=rec[k];
+      if(!v||!v.name)return;
+      var nk=v.name.toLowerCase();
+      if(!groups[nk])groups[nk]=[];
+      groups[nk].push(k);
+    });
+    var removed=0;
+    Object.keys(groups).forEach(function(nk){
+      var keys=groups[nk];
+      if(keys.length<2)return;
+      keys.sort(function(a,b){
+        var va=rec[a],vb=rec[b];
+        if((vb.xp||0)!==(va.xp||0))return (vb.xp||0)-(va.xp||0);
+        return (vb.updatedAt||0)-(va.updatedAt||0);
+      });
+      for(var i=1;i<keys.length;i++){ delete rec[keys[i]]; removed++; }
+    });
+    if(removed===0){ alert("Aucun doublon trouve."); return; }
+    await writeBin(rec);
+    alert(removed+" compte(s) en double supprime(s).");
+    doLoadJoueurs();
+  }catch(e){alert("Erreur: "+e.message);}
 }
 
 async function doShowRaw(){
@@ -471,6 +515,8 @@ document.addEventListener("click",function(e){
   else if(action==="refresh") doLoadGuests();
   else if(action==="deco")    doDeco();
   else if(action==="raw")     doShowRaw();
+  else if(action==="merge")   doMergeDuplicates();
+  else if(action==="refreshJ") doLoadJoueurs();
 });
 
 function _resolveCache(k,src){ return (src==="player"?JCACHE[k]:GCACHE[k])||{}; }
@@ -538,6 +584,8 @@ $id("createGuestBtn").setAttribute("data-action","create");
 $id("refreshBtn").setAttribute("data-action","refresh");
 $id("decoBtn").setAttribute("data-action","deco");
 $id("rawBtn").setAttribute("data-action","raw");
+$id("mergeBtn").setAttribute("data-action","merge");
+$id("refreshJBtn").setAttribute("data-action","refreshJ");
 
 
 /* ── AUTO-GENERATION CLE ACCES GUEST (via API JSONBin) ── */
