@@ -280,7 +280,8 @@ function buildPlayerCard(k,v){
     {action:"susp", cls:"ab-s", label:susp?"Restaurer":"Suspendre"},
     {action:"zones",cls:"ab-z", label:"Zones"},
     {action:"xp",   cls:"ab-x", label:"XP max"},
-    {action:"bonus",cls:"ab-b", label:"Bonus "+(v.allowBonus===false?"OFF":"ON")}
+    {action:"bonus",cls:"ab-b", label:"Bonus "+(v.allowBonus===false?"OFF":"ON")},
+    {action:"del",  cls:"ab-d", label:"Supprimer"}
   ];
   defs.forEach(function(d){
     var b=document.createElement("button");
@@ -418,7 +419,7 @@ document.addEventListener("click",function(e){
   else if(action==="zones") actionZones(k,src);
   else if(action==="xp")    actionXp(k,src);
   else if(action==="bonus")  actionBonus(k,src);
-  else if(action==="del")    actionDel(k);
+  else if(action==="del")    actionDel(k,src);
   /* boutons hors-guest */
   else if(action==="connect") doConnect();
   else if(action==="code-simon") doGenCode("simon");
@@ -470,13 +471,18 @@ async function actionBonus(k,src){
     await writeBin(rec);_refreshLists();
   }catch(e){alert("Erreur: "+e.message);}
 }
-async function actionDel(k){
-  var v=GCACHE[k]||{};
-  if(!confirm("Supprimer le compte de "+(v.name||k)+" ?"))return;
+async function actionDel(k,src){
+  var v=_resolveCache(k,src);
+  var label=v.name||k;
+  var msg = src==="player"
+    ? "Supprimer "+label+" du classement cloud ?\n\nAttention : si "+label+" utilise encore l\'app sur son appareil, sa fiche sera recreee automatiquement a la prochaine synchronisation (comportement normal, pas un bug)."
+    : "Supprimer le compte de "+label+" ?";
+  if(!confirm(msg))return;
   try{
     var rec=await readBin();
     delete rec[k];
-    await writeBin(rec);doLoadGuests();
+    await writeBin(rec);
+    _refreshLists();
   }catch(e){alert("Erreur: "+e.message);}
 }
 
