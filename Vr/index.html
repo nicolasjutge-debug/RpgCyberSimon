@@ -104,6 +104,24 @@
 </style>
 </head>
 <body>
+<script>
+// Attrape-erreurs global — affiche un message visible au lieu d'un crash silencieux
+// Place en tout premier pour capturer les erreurs de TOUS les blocs suivants
+(function(){
+  var shown=false;
+  function showErr(msg){
+    if(shown)return; shown=true;
+    var b=document.createElement('div');
+    b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:999999;background:#ff3b3b;color:#fff;font-family:monospace;font-size:11px;padding:10px 14px;line-height:1.5;';
+    b.innerHTML='<b>Erreur detectee :</b> '+String(msg).slice(0,200)
+      +'<div style="font-size:10px;margin-top:4px;opacity:.85">Note ce message exact et transmets-le pour diagnostic.</div>'
+      +'<button style="margin-top:6px;padding:5px 10px;background:rgba(255,255,255,.2);border:none;border-radius:5px;color:#fff;font-family:inherit;cursor:pointer" onclick="this.parentNode.remove()">Fermer</button>';
+    document.body.appendChild(b);
+  }
+  window.addEventListener('error',function(e){ showErr((e.error&&e.error.message)||e.message||'Erreur inconnue'); });
+  window.addEventListener('unhandledrejection',function(e){ showErr((e.reason&&e.reason.message)||e.reason||'Promesse rejetee'); });
+})();
+</script>
 <div id="bootOverlay" style="position:fixed;inset:0;z-index:99999;background:#04040a;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;">
 <div style="font-size:52px;line-height:1;margin-bottom:10px;filter:drop-shadow(0 0 14px #00f5ff);">🥽</div>
 <div style="font-family:'Press Start 2P',monospace;font-size:18px;letter-spacing:3px;text-shadow:0 0 14px #00f5ff;margin-bottom:6px;color:#00f5ff;">CYBER<span style="color:#a855f7">QUEST</span></div>
