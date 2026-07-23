@@ -97,11 +97,8 @@ input,select{width:100%;padding:11px;background:#060a10;border:1px solid #1c2c3d
   <div class="card">
     <div class="ct">CODE CONNEXION QUEST 2</div>
     <div class="cb">
-      <div class="ok">Code 6 caracteres valable 30 min pour connecter le casque rapidement.</div>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="btn bp" id="codeSimon" style="flex:1;margin:0">Simon</button>
-        <button class="btn bp" id="codeNiko" style="flex:1;margin:0">Niko</button>
-      </div>
+      <div class="ok">Code 6 caracteres valable 30 min pour connecter le casque rapidement. La cle Groq du profil choisi est demandee a chaque generation (jamais devinee).</div>
+      <div id="codeProfilesList" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"></div>
       <div class="codeBox" id="codeBox">
         <div class="codeVal" id="codeVal">------</div>
         <div class="codeInfo">Tape ce code dans CyberQuest VR → onglet Guest → Code Simon<br>Valable 30 min</div>
@@ -295,23 +292,48 @@ async function doShowRaw(){
 
 /* ── CODE QUEST 2 ────────────────────────────────────────── */
 async function doGenCode(profil){
+  var groq=prompt("Cle Groq de "+profil+" (gsk_...) :","");
+  if(groq===null)return;
+  groq=groq.trim();
+  if(!groq.startsWith("gsk_")){setMsg("codeMsg","Cle Groq invalide (doit commencer par gsk_)","mer");return;}
   setMsg("codeMsg","Generation...","mi");
   var chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",code="";
   for(var i=0;i<6;i++)code+=chars[Math.floor(Math.random()*chars.length)];
-  var groq=lsg("cq_g")||"";
   try{
     var rec=await readBin();
     Object.keys(rec).forEach(function(k){
       if(k.indexOf("_sess_")===0&&rec[k].exp<Date.now())delete rec[k];
     });
     rec["_sess_"+code]={p:profil,g:groq,j:MK,exp:Date.now()+30*60000};
-    if(!rec._config)rec._config={};
-    if(groq&&!rec._config.sharedGroqKey)rec._config.sharedGroqKey=groq;
     await writeBin(rec);
     $id("codeVal").textContent=code;
     $id("codeBox").style.display="block";
     setMsg("codeMsg","Code genere pour "+profil+" - valable 30 min","mok");
   }catch(e){setMsg("codeMsg","Erreur: "+e.message,"mer");}
+}
+
+function renderCodeProfiles(){
+  var c=$id("codeProfilesList");
+  if(!c)return;
+  c.innerHTML="";
+  var names=[];
+  Object.keys(JCACHE||{}).forEach(function(k){
+    if(k.indexOf("g_")===0||k.indexOf("_")===0)return; // exclut guests et config/session
+    var v=JCACHE[k];
+    if(v&&v.name&&names.indexOf(v.name)===-1)names.push(v.name);
+  });
+  if(!names.length){
+    c.innerHTML="<div style='font-size:11px;color:#6f8a99'>Aucun profil trouve. Actualise COMPTES JOUEURS d'abord.</div>";
+    return;
+  }
+  names.forEach(function(n){
+    var b=document.createElement("button");
+    b.className="btn bp";
+    b.style.cssText="flex:1;min-width:100px;margin:0";
+    b.textContent=n;
+    b.addEventListener("click",function(){ doGenCode(n); });
+    c.appendChild(b);
+  });
 }
 
 async function doLoadJoueurs(){
@@ -333,6 +355,7 @@ async function doLoadJoueurs(){
     if(!has){
       el.innerHTML="<div style='color:#6f8a99;font-size:11px;font-family:monospace'>Aucun joueur synchronise. Lance une Sync depuis CyberQuest d abord.</div>";
     }
+    renderCodeProfiles();
   }catch(e){
     el.innerHTML="<div style='color:#ff3b5c;font-size:11px;font-family:monospace'>"+e.message+"</div>";
   }
@@ -509,8 +532,6 @@ document.addEventListener("click",function(e){
   else if(action==="del")    actionDel(k,src);
   /* boutons hors-guest */
   else if(action==="connect") doConnect();
-  else if(action==="code-simon") doGenCode("simon");
-  else if(action==="code-niko")  doGenCode("niko");
   else if(action==="create")  doCreateGuest();
   else if(action==="refresh") doLoadGuests();
   else if(action==="deco")    doDeco();
@@ -578,8 +599,6 @@ async function actionDel(k,src){
 
 /* ── BOUTONS STATIQUES via data-action ───────────────────── */
 $id("connectBtn").setAttribute("data-action","connect");
-$id("codeSimon").setAttribute("data-action","code-simon");
-$id("codeNiko").setAttribute("data-action","code-niko");
 $id("createGuestBtn").setAttribute("data-action","create");
 $id("refreshBtn").setAttribute("data-action","refresh");
 $id("decoBtn").setAttribute("data-action","deco");
