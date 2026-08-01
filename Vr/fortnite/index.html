@@ -36,6 +36,12 @@ canvas{display:block}
 .vrToggle button{background:transparent;border:0;color:var(--muted);cursor:pointer;font-weight:700}
 /* Mobile adjustments */
 @media (max-width:600px){.hbar{width:160px}.hudBottom{flex-direction:column}}
+/* Small profile/config floating button */
+.profileBtn{position:fixed;right:16px;top:14px;z-index:25;pointer-events:auto;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;font-family:monospace;font-size:13px;color:var(--muted);cursor:pointer}
+.profileModal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(3,6,10,0.7);z-index:60}
+.profileCard{background:linear-gradient(180deg,#071022,#051021);border:1px solid rgba(255,255,255,0.04);padding:16px;border-radius:10px;min-width:320px}
+.profileCard input{width:100%;padding:8px;margin-top:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+.profileCard button{margin-top:12px;padding:10px;border-radius:8px;border:none;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#071322;font-weight:800}
 </style>
 </head>
 <body>
@@ -64,6 +70,22 @@ canvas{display:block}
 </div>
 <div class="vrToggle" id="vrToggleBar" style="display:none;pointer-events:auto"><button id="enterVr">Entrer VR</button></div>
 
+<button class="profileBtn" id="openProfile">Profile</button>
+<div class="profileModal" id="profileModal">
+  <div class="profileCard">
+    <div style="font-weight:800;font-family:monospace;color:var(--accent);">Configuration pédagogique</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:6px">Profil, clés Groq & JSONBin (stockées localement)</div>
+    <input id="pfName" placeholder="Nom du profil (ex: Simon)" />
+    <input id="pfGroq" placeholder="Cle Groq (gsk_...)" />
+    <input id="pfJson" placeholder="Cle JSONBin (X-Master-Key)" />
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button id="saveProfile">Sauvegarder</button>
+      <button id="closeProfile" style="background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)">Fermer</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-top:8px">Si tu ne veux pas partager les clés, laisse vide — mode Guest auto-activé.</div>
+  </div>
+</div>
+
 <!-- Canvas for Three.js will be appended here -->
 
 <script>
@@ -81,6 +103,90 @@ function loadScript(src){return new Promise(function(res,rej){var s=document.cre
 }catch(e){document.getElementById('loading').style.display='none';alert('Erreur chargement Three.js');}
 })();
 
+// ---------- Pedagogical state & helpers (integrated from VR index) ----------
+var BIN_ID = '6a42d25af5f4af5e2943be8f';
+var MODEL = 'llama-3.3-70b-versatile';
+var VER = '8';
+var ZONES = [
+  {"id":"python","name":"PYTHON DUNGEON","icon":"🐍","color":"#00f5ff","desc":"Scripting, réseau, crypto · S1-S8","weeks":[{"n":1,"title":"Variables et types","sub":"Bases du langage"},{"n":2,"title":"Fonctions & modules","sub":"Modularité"}]},
+  {"id":"reseau","name":"RESEAUX","icon":"🌐","color":"#ffd166","desc":"TCP/IP, capture, ports","weeks":[{"n":1,"title":"Modèles OSI/TCP","sub":"Notions"}]}
+];
+
+function lsg(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
+function lss(k,v){try{localStorage.setItem(k,v);}catch(e){}
+}
+if(lsg('cq_ver')!==VER){['cq_p','cq_g','cq_j'].forEach(function(k){lss(k,'');});lss('cq_ver',VER);} 
+var profile=lsg('cq_p')||''; var groqKey=lsg('cq_g')||''; var jbKey=lsg('cq_j')||'';
+var isGuest=false, guestAllowedZones=null, guestXpCap=null;
+var myXp=0, myDone={}, myStreak=0, myBQ={};
+
+function updateHUD(){document.getElementById('playerName').textContent = profile?profile:'Guest';document.getElementById('xp').textContent = myXp||0;}
+
+async function loadPlayer(){
+  if(!jbKey) return;
+  try{
+    var opts = jbKey?{headers:{'X-Master-Key':jbKey}}:{};
+    var res=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest',opts);
+    if(!res.ok) throw new Error('Bin inaccessible');
+    var rec=(await res.json()).record||{};
+    var me = Object.values(rec).find(function(v){return v && v.name && v.name.toLowerCase()===profile.toLowerCase();});
+    if(me){ myDone = me.done||{}; myBQ = me.bonusClaimed||{}; myXp = me.xp||calcXP(myDone,myBQ);} else { /* nothing */ }
+    updateHUD();
+  }catch(e){console.warn('loadPlayer',e.message);} 
+}
+
+function calcXP(d,b){var x=0; ZONES.forEach(function(z){z.weeks.forEach(function(w){ if(d[z.id+'_'+w.n]) x+=100; });});
+  (b?Object.keys(b):[]).forEach(function(k){ /* approximate */ });
+  return x;
+}
+
+async function syncProg(dk,bqAdd){
+  if(!jbKey || !profile) return;
+  try{
+    var r=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest',{headers:{'X-Master-Key':jbKey}});
+    var rec=(await r.json()).record||{};
+    // find profile key
+    var pKey = Object.keys(rec).find(function(k){var v=rec[k]; return v && v.name && v.name.toLowerCase()===profile.toLowerCase();});
+    if(!pKey){ // create
+      pKey = 'u_'+Date.now(); rec[pKey] = { name: profile, type: 'player', xp: myXp, done: (dk?dk:myDone), bonusClaimed: (bqAdd?bqAdd:myBQ)};
+    } else {
+      rec[pKey].done = Object.assign({}, rec[pKey].done || {}, dk || {});
+      rec[pKey].bonusClaimed = Object.assign({}, rec[pKey].bonusClaimed || {}, bqAdd || {});
+      rec[pKey].xp = calcXP(rec[pKey].done, rec[pKey].bonusClaimed);
+    }
+    await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':jbKey},body:JSON.stringify(rec)});
+    console.log('syncProg saved');
+  }catch(e){console.warn('syncProg',e.message);} 
+}
+
+// Sudden-death check simplified — displays a banner if tied at top
+var sdBanner=null;
+async function checkSuddenDeath(){
+  if(!profile) return;
+  try{
+    var opts = jbKey?{headers:{'X-Master-Key':jbKey}}:{};
+    var res=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest',opts);
+    if(!res.ok) return;
+    var rec=(await res.json()).record||{};
+    var ranked = Object.keys(rec).filter(function(k){return rec[k] && rec[k].name && rec[k].type!=='guest';}).map(function(k){return {key:k,name:rec[k].name,xp:rec[k].xp||0};}).sort(function(a,b){return b.xp-a.xp;});
+    if(ranked.length<2) return;
+    var topxp = ranked[0].xp; var tied = ranked.filter(function(r){return r.xp===topxp;});
+    var iAmTied = tied.some(function(r){return r.name.toLowerCase()===profile.toLowerCase();});
+    if(iAmTied && tied.length>1){ showSDBanner(tied.map(t=>t.name).join(', '), topxp); } else { hideSDBanner(); }
+  }catch(e){console.warn('checkSuddenDeath',e.message);} 
+}
+
+function showSDBanner(names, xp){ if(sdBanner) sdBanner.remove(); sdBanner = document.createElement('div'); sdBanner.style.cssText='position:fixed;left:50%;top:64px;transform:translateX(-50%);z-index:60;background:linear-gradient(90deg,#ff66c4,#5dd3ff);color:#041322;padding:8px 12px;border-radius:8px;font-family:monospace;cursor:pointer'; sdBanner.textContent='⚡ MORT SUBITE — égalité avec '+names; sdBanner.addEventListener('click',openSDBox); document.body.appendChild(sdBanner);} 
+function hideSDBanner(){ if(sdBanner) sdBanner.style.display='none'; }
+function openSDBox(){ alert('Ouvrir défi mort subite — fonctionnalité via Groq (clé requise)'); }
+
+// Profile modal logic
+var openBtn=document.getElementById('openProfile'); var modal=document.getElementById('profileModal');
+openBtn.addEventListener('click',function(){ document.getElementById('pfName').value = profile || ''; document.getElementById('pfGroq').value = groqKey || ''; document.getElementById('pfJson').value = jbKey || ''; modal.style.display='flex'; });
+document.getElementById('closeProfile').addEventListener('click',function(){ modal.style.display='none'; });
+document.getElementById('saveProfile').addEventListener('click',function(){ var n=document.getElementById('pfName').value.trim(); var g=document.getElementById('pfGroq').value.trim(); var j=document.getElementById('pfJson').value.trim(); if(n) { profile=n; lss('cq_p',profile);} groqKey=g?g:''; jbKey=j?j:''; lss('cq_g',groqKey); lss('cq_j',jbKey); modal.style.display='none'; updateHUD(); if(jbKey) loadPlayer(); checkSuddenDeath(); });
+
+// ---------- Three.js scene and game code (existing) ----------
 function init(){
   // Scene, camera, renderer
   var scene=new THREE.Scene();
@@ -174,9 +280,20 @@ function init(){
 
   // hide loader
   document.getElementById('loading').style.display='none';
+
+  // Init HUD values from local storage if present
+  if(profile){ updateHUD(); if(jbKey) loadPlayer(); }
+  setTimeout(checkSuddenDeath,3000);
 }
 
 // small utility: save placeholders for assets
 </script>
+
+<!-- Pedagogical features: short polling and background sync -->
+<script>
+// periodic tasks
+setInterval(function(){ if(jbKey) checkSuddenDeath(); }, 25000);
+</script>
+
 </body>
 </html>
