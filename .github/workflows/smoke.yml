@@ -12,7 +12,6 @@ jobs:
           node-version: '18'
 
       - name: Install project deps
-        working-directory: Vr/fortnite
         run: |
           npm ci || npm install
 
@@ -22,7 +21,6 @@ jobs:
           browsers: 'chromium'
 
       - name: Start static server
-        working-directory: Vr/fortnite
         run: npx http-server -p 8080 & sleep 2
 
       - name: Run smoke script via Playwright
