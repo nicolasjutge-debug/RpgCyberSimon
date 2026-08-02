@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Demo Fortnite (VR preview)</title>
+  <style>
+    body{margin:0;font-family:system-ui;background:#071827;color:#e6fbff;display:flex;flex-direction:column;align-items:center;gap:18px;padding:24px}
+    #container{width:100%;max-width:960px;background:#041827;padding:18px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.6)}
+    canvas{width:100%;height:360px;border-radius:8px;background:#00121a;display:block}
+    .controls{display:flex;gap:8px;align-items:center}
+    button{background:#5dd3ff;border:0;padding:10px 14px;border-radius:8px;color:#012;cursor:pointer}
+    #profile{display:none;position:fixed;right:20px;top:20px;background:#082433;padding:12px;border-radius:8px}
+    label,input{display:block;margin:6px 0}
+  </style>
+</head>
+<body>
+  <h1>Demo Fortnite (VR preview)</h1>
+  <div id="container">
+    <canvas id="sceneCanvas" width="1280" height="720"></canvas>
+    <div class="controls">
+      <button id="battleBtn">BATTLE</button>
+      <button id="openProfile">Profile</button>
+      <span id="status" style="color:#98a8b7;margin-left:8px">Prêt</span>
+    </div>
+  </div>
+
+  <div id="profile">
+    <label>Nom</label>
+    <input id="pfName" placeholder="Nom de profil" />
+    <button id="saveProfile">Enregistrer</button>
+  </div>
+
+<script>
+// Simple Three-like demo without external libs (draws a rotating rectangle)
+const canvas = document.getElementById('sceneCanvas');
+const ctx = canvas.getContext('2d');
+let angle = 0, anim = null;
+
+function draw(){
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.save();
+  ctx.translate(w/2, h/2);
+  ctx.rotate(angle);
+  ctx.fillStyle = '#20c997';
+  ctx.fillRect(-80, -40, 160, 80);
+  ctx.restore();
+  angle += 0.02;
+}
+
+function startAnim(){
+  if (anim) return;
+  anim = setInterval(draw, 16);
+  document.getElementById('status').textContent = 'Animation lancée';
+}
+
+function stopAnim(){
+  if (!anim) return;
+  clearInterval(anim); anim = null;
+  document.getElementById('status').textContent = 'Arrêté';
+}
+
+document.getElementById('battleBtn').addEventListener('click', ()=>{
+  // simulate an animation / effect
+  startAnim();
+  setTimeout(()=>{ stopAnim(); }, 3500);
+});
+
+document.getElementById('openProfile').addEventListener('click', ()=>{
+  const p = document.getElementById('profile');
+  p.style.display = p.style.display === 'block' ? 'none' : 'block';
+});
+document.getElementById('saveProfile').addEventListener('click', ()=>{
+  const name = document.getElementById('pfName').value || 'Anonyme';
+  document.getElementById('status').textContent = 'Profil: ' + name;
+  document.getElementById('profile').style.display = 'none';
+});
+
+// expose simple API for smoke test
+window.__demo = {
+  hasCanvas: () => !!document.getElementById('sceneCanvas'),
+  triggerBattle: () => document.getElementById('battleBtn').click()
+};
+</script>
+</body>
+</html>
