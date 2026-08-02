@@ -1,1 +1,21 @@
-
+name: smoke-test
+on: [pull_request]
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install global http-server
+        run: npm install -g http-server
+      - name: Install playwright
+        run: |
+          npm init -y
+          npm i -D playwright@1.35.0
+          npx playwright install --with-deps
+      - name: Start static server
+        run: npx http-server -p 8080 & sleep 2
+      - name: Run smoke script via Playwright
+        run: node .github/scripts/run_smoke.js
